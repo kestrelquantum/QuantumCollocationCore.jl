@@ -1,5 +1,8 @@
 module QuantumCollocationCore
 
-# Write your package code here.
+using Reexport
+
+include("isomorphisms.jl")
+@reexport using .Isomorphisms
 
 end
