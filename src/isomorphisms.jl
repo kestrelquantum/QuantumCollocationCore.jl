@@ -40,14 +40,15 @@ end
 
 Convert a ket vector `ψ` into a complex vector with real and imaginary parts.
 """
-ket_to_iso(ψ) = [real(ψ); imag(ψ)]
+ket_to_iso(ψ)::Vector{Float64} = [real(ψ); imag(ψ)]
 
 @doc raw"""
     iso_to_ket(ψ̃)
 
 Convert a complex vector `ψ̃` with real and imaginary parts into a ket vector.
 """
-iso_to_ket(ψ̃) = ψ̃[1:div(length(ψ̃), 2)] + im * ψ̃[(div(length(ψ̃), 2) + 1):end]
+iso_to_ket(ψ̃)::Vector{ComplexF64} =
+    ψ̃[1:div(length(ψ̃), 2)] + im * ψ̃[(div(length(ψ̃), 2) + 1):end]
 
 # ----------------------------------------------------------------------------- #
 #                             Unitaries                                         #
