@@ -42,6 +42,7 @@ struct UnitaryExponentialIntegrator <: QuantumExponentialIntegrator
         autodiff::Bool=false
     )
         dim = traj.dims[unitary_name]
+
         ketdim = Int(sqrt(dim ÷ 2))
 
         unitary_components = traj.components[unitary_name]
@@ -315,6 +316,7 @@ end
 
 @testitem "testing UnitaryExponentialIntegrator" begin
     using NamedTrajectories
+    using PiccoloQuantumObjects
     using ForwardDiff
 
     T = 100
@@ -366,6 +368,7 @@ end
 
 @testitem "testing QuantumStateExponentialIntegrator" begin
     using NamedTrajectories
+    using PiccoloQuantumObjects
     using ForwardDiff
 
     T = 100

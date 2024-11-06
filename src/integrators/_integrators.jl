@@ -25,13 +25,9 @@ export sixth_order_pade
 export eighth_order_pade
 export tenth_order_pade
 
-using ..Isomorphisms
-# using ..QuantumSystems
-# using ..QuantumObjectUtils
-# using ..QuantumSystemUtils
-
 using NamedTrajectories
 using TrajectoryIndexingUtils
+using PiccoloQuantumObjects
 using LinearAlgebra
 using SparseArrays
 using ForwardDiff

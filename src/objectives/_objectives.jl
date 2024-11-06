@@ -4,13 +4,11 @@ export Objective
 export NullObjective
 
 using ..Losses
-using ..Isomorphisms
 using ..Constraints
-using ..EmbeddedOperators
 
 using TrajectoryIndexingUtils
 using NamedTrajectories
-
+using PiccoloQuantumObjects
 using LinearAlgebra
 using SparseArrays
 using Symbolics

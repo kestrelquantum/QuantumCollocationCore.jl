@@ -139,14 +139,14 @@ function QuantumStateObjective(
     return QuantumObjective(name, traj, :InfidelityLoss, Q)
 end
 
-# ============================================================================= # 
+# ============================================================================= #
 
 @testitem "Quantum State Objective" begin
     using LinearAlgebra
     using NamedTrajectories
     using ForwardDiff
     include("../../test/test_utils.jl")
-    
+
     T = 10
 
     Z = NamedTrajectory(
@@ -177,6 +177,7 @@ end
 @testitem "Unitary Objective" begin
     using LinearAlgebra
     using NamedTrajectories
+    using PiccoloQuantumObjects
     using ForwardDiff
     include("../../test/test_utils.jl")
 

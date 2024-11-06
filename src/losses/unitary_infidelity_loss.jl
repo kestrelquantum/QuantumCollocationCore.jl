@@ -419,6 +419,7 @@ end
 
 @testitem "Isovec Unitary Fidelity" begin
     using LinearAlgebra
+    using PiccoloQuantumObjects
 
     U_X = [0 1; 1 0]
     U_Y = [0 -im; im 0]
@@ -473,6 +474,7 @@ end
 
 @testitem "Isovec Unitary Fidelity Subspace" begin
     using LinearAlgebra
+    using PiccoloQuantumObjects
 
     function test_iso_vec_unitary_fidelity(
         U₁::AbstractMatrix,

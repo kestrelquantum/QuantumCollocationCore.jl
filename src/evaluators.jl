@@ -2,7 +2,6 @@ module Evaluators
 
 export PicoEvaluator
 
-using ..QuantumSystems
 using ..Integrators
 using ..Dynamics
 using ..Objectives

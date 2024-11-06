@@ -1,6 +1,7 @@
 using QuantumCollocationCore
 using Test
+using TestItemRunner
 
-@testset "QuantumCollocationCore.jl" begin
-    # Write your tests here.
-end
+
+# Run all testitem tests in package
+@run_package_tests

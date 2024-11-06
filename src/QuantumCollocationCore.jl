@@ -5,20 +5,8 @@ using Reexport
 include("options.jl")
 @reexport using .Options
 
-include("gates.jl")
-@reexport using .Gates
-
 include("structure_utils.jl")
 @reexport using .StructureUtils
-
-include("isomorphisms.jl")
-@reexport using .Isomorphisms
-
-include("quantum_systems.jl")
-@reexport using .QuantumSystems
-
-include("embedded_operators.jl")
-@reexport using .EmbeddedOperators
 
 include("losses/_losses.jl")
 @reexport using .Losses

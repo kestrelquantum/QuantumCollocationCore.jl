@@ -9,7 +9,6 @@ export update_trajectory!
 export get_objective
 export get_constraints
 
-using ..QuantumSystems
 using ..Integrators
 using ..Evaluators
 using ..Options
@@ -19,8 +18,8 @@ using ..Objectives
 
 using TrajectoryIndexingUtils
 using NamedTrajectories
+using PiccoloQuantumObjects
 using TestItemRunner
-
 using LinearAlgebra
 using JLD2
 using Ipopt

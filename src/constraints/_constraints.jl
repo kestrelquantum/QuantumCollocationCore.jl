@@ -11,12 +11,12 @@ export NonlinearEqualityConstraint
 export NonlinearInequalityConstraint
 
 using ..Losses
-using ..Isomorphisms
 using ..StructureUtils
 using ..Options
 
 using TrajectoryIndexingUtils
 using NamedTrajectories
+using PiccoloQuantumObjects
 using ForwardDiff
 using SparseArrays
 using Ipopt

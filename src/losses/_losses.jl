@@ -3,14 +3,11 @@ module Losses
 export Loss
 
 # using ..QuantumObjectUtils
-using ..QuantumSystems
 using ..StructureUtils
-using ..Isomorphisms
-using ..Gates
 
 using NamedTrajectories
 using TrajectoryIndexingUtils
-
+using PiccoloQuantumObjects
 using LinearAlgebra
 using SparseArrays
 using ForwardDiff
