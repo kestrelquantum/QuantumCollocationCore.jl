@@ -12,8 +12,6 @@ export QuantumStateExponentialIntegrator
 
 export DerivativeIntegrator
 
-export G_bilinear
-
 export jacobian
 export hessian_of_the_lagrangian
 

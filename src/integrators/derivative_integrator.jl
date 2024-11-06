@@ -35,19 +35,19 @@ function DerivativeIntegrator(
     )
 end
 
-function (integrator::DerivativeIntegrator)(
-    traj::NamedTrajectory;
-    variable::Union{Symbol, Nothing}=nothing,
-    derivative::Union{Symbol, Nothing}=nothing,
-)
-    @assert !isnothing(variable) "variable must be provided"
-    @assert !isnothing(derivative) "derivative must be provided"
-    return DerivativeIntegrator(
-        variable,
-        derivative,
-        traj
-    )
-end
+# function (integrator::DerivativeIntegrator)(
+#     traj::NamedTrajectory;
+#     variable::Union{Symbol, Nothing}=nothing,
+#     derivative::Union{Symbol, Nothing}=nothing,
+# )
+#     @assert !isnothing(variable) "variable must be provided"
+#     @assert !isnothing(derivative) "derivative must be provided"
+#     return DerivativeIntegrator(
+#         variable,
+#         derivative,
+#         traj
+#     )
+# end
 
 state(integrator::DerivativeIntegrator) = integrator.variable
 controls(integrator::DerivativeIntegrator) = integrator.derivative

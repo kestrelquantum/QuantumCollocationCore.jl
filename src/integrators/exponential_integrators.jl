@@ -37,7 +37,7 @@ struct UnitaryExponentialIntegrator <: QuantumExponentialIntegrator
     function UnitaryExponentialIntegrator(
         unitary_name::Symbol,
         drive_name::Union{Symbol, Tuple{Vararg{Symbol}}},
-        G::Function,
+        sys::QuantumSystem,
         traj::NamedTrajectory;
         autodiff::Bool=false
     )
@@ -75,7 +75,7 @@ struct UnitaryExponentialIntegrator <: QuantumExponentialIntegrator
             dim,
             traj.dim,
             autodiff,
-            G
+            sys.G
         )
     end
 end
@@ -183,7 +183,7 @@ struct QuantumStateExponentialIntegrator <: QuantumExponentialIntegrator
     function QuantumStateExponentialIntegrator(
         state_name::Symbol,
         drive_name::Union{Symbol, Tuple{Vararg{Symbol}}},
-        G::Function,
+        sys::QuantumSystem,
         traj::NamedTrajectory;
         autodiff::Bool=false
     )
@@ -220,7 +220,7 @@ struct QuantumStateExponentialIntegrator <: QuantumExponentialIntegrator
             dim,
             traj.dim,
             autodiff,
-            G
+            sys.G
         )
     end
 end
@@ -233,23 +233,23 @@ function get_comps(P::QuantumStateExponentialIntegrator, traj::NamedTrajectory)
     end
 end
 
-function (integrator::QuantumStateExponentialIntegrator)(
-    traj::NamedTrajectory;
-    state_name::Union{Nothing, Symbol}=nothing,
-    drive_name::Union{Nothing, Symbol, Tuple{Vararg{Symbol}}}=nothing,
-    G::Function=integrator.G,
-    autodiff::Bool=integrator.autodiff
-)
-    @assert !isnothing(state_name) "state_name must be provided"
-    @assert !isnothing(drive_name) "drive_name must be provided"
-    return QuantumStateExponentialIntegrator(
-        state_name,
-        drive_name,
-        G,
-        traj;
-        autodiff=autodiff
-    )
-end
+# function (integrator::QuantumStateExponentialIntegrator)(
+#     traj::NamedTrajectory;
+#     state_name::Union{Nothing, Symbol}=nothing,
+#     drive_name::Union{Nothing, Symbol, Tuple{Vararg{Symbol}}}=nothing,
+#     G::Function=integrator.G,
+#     autodiff::Bool=integrator.autodiff
+# )
+#     @assert !isnothing(state_name) "state_name must be provided"
+#     @assert !isnothing(drive_name) "drive_name must be provided"
+#     return QuantumStateExponentialIntegrator(
+#         state_name,
+#         drive_name,
+#         G,
+#         traj;
+#         autodiff=autodiff
+#     )
+# end
 
 # ------------------------------ Integrator --------------------------------- #
 
@@ -324,7 +324,7 @@ end
     H_drives = [GATES[:X], GATES[:Y]]
     n_drives = length(H_drives)
 
-    system = QuantumSystem(H_drift, H_drives)
+    sys = QuantumSystem(H_drift, H_drives)
 
     U_init = GATES[:I]
     U_goal = GATES[:X]
@@ -348,9 +348,7 @@ end
         goal=(Ũ⃗ = Ũ⃗_goal,)
     )
 
-    G = a -> Integrators.G_bilinear(a, system.G_drift, system.G_drives)
-
-    ℰ = UnitaryExponentialIntegrator(:Ũ⃗, :a, G, Z)
+    ℰ = UnitaryExponentialIntegrator(:Ũ⃗, :a, sys, Z)
 
 
     ∂Ũ⃗ₜℰ, ∂Ũ⃗ₜ₊₁ℰ, ∂aₜℰ, ∂Δtₜℰ = jacobian(ℰ, Z[1].data, Z[2].data, 1)
@@ -376,7 +374,7 @@ end
     H_drives = [GATES[:X], GATES[:Y]]
     n_drives = length(H_drives)
 
-    system = QuantumSystem(H_drift, H_drives)
+    sys = QuantumSystem(H_drift, H_drives)
 
     U_init = GATES[:I]
     U_goal = GATES[:X]
@@ -399,9 +397,7 @@ end
         goal=(ψ̃ = ψ̃_goal,)
     )
 
-    G = a -> Integrators.G_bilinear(a, system.G_drift, system.G_drives)
-
-    ℰ = QuantumStateExponentialIntegrator(:ψ̃, :a, G, Z)
+    ℰ = QuantumStateExponentialIntegrator(:ψ̃, :a, sys, Z)
 
     ∂ψ̃ₜℰ, ∂ψ̃ₜ₊₁ℰ, ∂aₜℰ, ∂Δtₜℰ = jacobian(ℰ, Z[1].data, Z[2].data, 1)
 

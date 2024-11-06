@@ -9,8 +9,6 @@ function nth_order_pade(Gₜ::Matrix, n::Int)
     return inv(B) * F
 end
 
-
-
 fourth_order_pade(Gₜ::Matrix) = nth_order_pade(Gₜ, 4)
 sixth_order_pade(Gₜ::Matrix) = nth_order_pade(Gₜ, 6)
 eighth_order_pade(Gₜ::Matrix) = nth_order_pade(Gₜ, 8)
@@ -256,8 +254,7 @@ struct UnitaryPadeIntegrator <: QuantumPadeIntegrator
     function UnitaryPadeIntegrator(
         unitary_name::Symbol,
         drive_name::Union{Symbol,Tuple{Vararg{Symbol}}},
-        G::Function,
-        ∂G::Function,
+        sys::QuantumSystem,
         traj::NamedTrajectory;
         order::Int=4,
         autodiff::Bool=false
@@ -298,8 +295,8 @@ struct UnitaryPadeIntegrator <: QuantumPadeIntegrator
             traj.dim,
             order,
             autodiff,
-            G,
-            ∂G
+            sys.G,
+            sys.∂G
         )
     end
 end
@@ -312,27 +309,27 @@ function get_comps(P::UnitaryPadeIntegrator, traj::NamedTrajectory)
     end
 end
 
-function (integrator::UnitaryPadeIntegrator)(
-    traj::NamedTrajectory;
-    unitary_name::Union{Symbol, Nothing}=nothing,
-    drive_name::Union{Symbol, Tuple{Vararg{Symbol}}, Nothing}=nothing,
-    order::Int=integrator.order,
-    G::Function=integrator.G,
-    ∂G::Function=integrator.∂G,
-    autodiff::Bool=integrator.autodiff
-)
-    @assert !isnothing(unitary_name) "unitary_name must be provided"
-    @assert !isnothing(drive_name) "drive_name must be provided"
-    return UnitaryPadeIntegrator(
-        unitary_name,
-        drive_name,
-        G,
-        ∂G,
-        traj;
-        order=order,
-        autodiff=autodiff
-    )
-end
+# function (integrator::UnitaryPadeIntegrator)(
+#     traj::NamedTrajectory;
+#     unitary_name::Union{Symbol, Nothing}=nothing,
+#     drive_name::Union{Symbol, Tuple{Vararg{Symbol}}, Nothing}=nothing,
+#     order::Int=integrator.order,
+#     G::Function=integrator.G,
+#     ∂G::Function=integrator.∂G,
+#     autodiff::Bool=integrator.autodiff
+# )
+#     @assert !isnothing(unitary_name) "unitary_name must be provided"
+#     @assert !isnothing(drive_name) "drive_name must be provided"
+#     return UnitaryPadeIntegrator(
+#         unitary_name,
+#         drive_name,
+#         G,
+#         ∂G,
+#         traj;
+#         order=order,
+#         autodiff=autodiff
+#     )
+# end
 
 # ------------------- Integrator -------------------
 
@@ -513,8 +510,7 @@ struct QuantumStatePadeIntegrator <: QuantumPadeIntegrator
     function QuantumStatePadeIntegrator(
         state_name::Symbol,
         drive_name::Union{Symbol,Tuple{Vararg{Symbol}}},
-        G::Function,
-        ∂G::Function,
+        sys::QuantumSystem,
         traj::NamedTrajectory;
         order::Int=4,
         autodiff::Bool=false,
@@ -556,8 +552,8 @@ struct QuantumStatePadeIntegrator <: QuantumPadeIntegrator
             traj.dim,
             order,
             autodiff,
-            G,
-            ∂G
+            sys.G,
+            sys.∂G
         )
     end
 end
@@ -570,27 +566,27 @@ function get_comps(P::QuantumStatePadeIntegrator, traj::NamedTrajectory)
     end
 end
 
-function (integrator::QuantumStatePadeIntegrator)(
-    traj::NamedTrajectory;
-    state_name::Union{Symbol, Nothing}=nothing,
-    drive_name::Union{Symbol, Tuple{Vararg{Symbol}}, Nothing}=nothing,
-    order::Int=integrator.order,
-    G::Function=integrator.G,
-    ∂G::Function=integrator.∂G,
-    autodiff::Bool=integrator.autodiff
-)
-    @assert !isnothing(state_name) "state_name must be provided"
-    @assert !isnothing(drive_name) "drive_name must be provided"
-    return QuantumStatePadeIntegrator(
-        state_name,
-        drive_name,
-        G,
-        ∂G,
-        traj;
-        order=order,
-        autodiff=autodiff
-    )
-end
+# function (integrator::QuantumStatePadeIntegrator)(
+#     traj::NamedTrajectory;
+#     state_name::Union{Symbol, Nothing}=nothing,
+#     drive_name::Union{Symbol, Tuple{Vararg{Symbol}}, Nothing}=nothing,
+#     order::Int=integrator.order,
+#     G::Function=integrator.G,
+#     ∂G::Function=integrator.∂G,
+#     autodiff::Bool=integrator.autodiff
+# )
+#     @assert !isnothing(state_name) "state_name must be provided"
+#     @assert !isnothing(drive_name) "drive_name must be provided"
+#     return QuantumStatePadeIntegrator(
+#         state_name,
+#         drive_name,
+#         G,
+#         ∂G,
+#         traj;
+#         order=order,
+#         autodiff=autodiff
+#     )
+# end
 
 # ------------------- Integrator -------------------
 
