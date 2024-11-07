@@ -19,6 +19,7 @@ include("unitary_infidelity_objective.jl")
 include("regularizer_objective.jl")
 include("minimum_time_objective.jl")
 include("unitary_robustness_objective.jl")
+include("density_operator_objectives.jl")
 
 # TODO:
 # - [ ] Do not reference the Z object in the objective (components only / remove "name")

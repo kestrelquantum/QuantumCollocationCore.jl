@@ -28,6 +28,7 @@ include("quantum_loss.jl")
 include("quantum_state_infidelity_loss.jl")
 include("unitary_trace_loss.jl")
 include("unitary_infidelity_loss.jl")
+include("density_operator_losses.jl")
 
 # ----------------------------------------------------------------------------- #
 #                               Loss                                            #

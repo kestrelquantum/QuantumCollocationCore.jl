@@ -1,12 +1,3 @@
-# G_bilinear(a) helper function
-function G_bilinear(
-    a::AbstractVector,
-    G_drift::AbstractMatrix,
-    G_drives::AbstractVector{<:AbstractMatrix}
-)
-    return G_drift + sum(a .* G_drives)
-end
-
 const Id2 = 1.0 * I(2)
 const Im2 = 1.0 * [0 -1; 1 0]
 

@@ -123,9 +123,8 @@ end
         Δtₜ = ℰ.timestep
     end
 
-    Gₜ = ℰ.G(aₜ)
-
-    return Ũ⃗ₜ₊₁ - expv(Δtₜ, I(ℰ.ketdim) ⊗ Gₜ, Ũ⃗ₜ)
+    # return Ũ⃗ₜ₊₁ - expv(Δtₜ, I(ℰ.ketdim) ⊗ ℰ.G(aₜ), Ũ⃗ₜ)
+    return Ũ⃗ₜ₊₁ - (I(ℰ.ketdim) ⊗ exp_eigen(Δtₜ * ℰ.G(aₜ))) * Ũ⃗ₜ
 end
 
 @views function jacobian(
@@ -268,10 +267,7 @@ end
         Δtₜ = ℰ.timestep
     end
 
-    Gₜ = ℰ.G(aₜ)
-
-
-    return ψ̃ₜ₊₁ - expv(Δtₜ, Gₜ, ψ̃ₜ)
+    return ψ̃ₜ₊₁ - expv(Δtₜ, ℰ.G(aₜ), ψ̃ₜ)
 end
 
 @views function jacobian(
@@ -312,12 +308,137 @@ end
     end
 end
 
+# ----------------------------------------------------------------------------- #
+#                Density Operator Exponential Integrator                        #
+# ----------------------------------------------------------------------------- #
+
+struct DensityOperatorExponentialIntegrator <: QuantumExponentialIntegrator
+    density_operator_components::Vector{Int}
+    drive_components::Vector{Int}
+    timestep::Union{Real, Int}
+    freetime::Bool
+    n_drives::Int
+    ketdim::Int
+    dim::Int
+    zdim::Int
+    autodiff::Bool
+    G::Function
+
+    function DensityOperatorExponentialIntegrator(
+        density_operator_name::Symbol,
+        drive_name::Union{Symbol, Tuple{Vararg{Symbol}}},
+        sys::AbstractQuantumSystem,
+        traj::NamedTrajectory;
+        autodiff::Bool=false
+    )
+        dim = traj.dims[density_operator_name]
+        ketdim = size(sys.H(zeros(sys.n_drives)), 1)
+
+        density_operator_components = traj.components[density_operator_name]
+
+        println(length(density_operator_components))
+
+        if drive_name isa Tuple
+            drive_components = vcat((traj.components[s] for s ∈ drive_name)...)
+        else
+            drive_components = traj.components[drive_name]
+        end
+
+        n_drives = length(drive_components)
+
+        @assert all(diff(drive_components) .== 1) "controls must be in order"
+
+        freetime = traj.timestep isa Symbol
+
+        if freetime
+            timestep = traj.components[traj.timestep][1]
+        else
+            timestep = traj.timestep
+        end
+
+        return new(
+            density_operator_components,
+            drive_components,
+            timestep,
+            freetime,
+            n_drives,
+            ketdim,
+            dim,
+            traj.dim,
+            autodiff,
+            sys.G
+        )
+    end
+end
+
+# ------------------------------ Integrator --------------------------------- #
+
+@views function (ℒ::DensityOperatorExponentialIntegrator)(
+    zₜ::AbstractVector,
+    zₜ₊₁::AbstractVector,
+    t::Int
+)
+    ρ⃗̃ₜ₊₁ = zₜ₊₁[ℒ.density_operator_components]
+    ρ⃗̃ₜ = zₜ[ℒ.density_operator_components]
+    aₜ = zₜ[ℒ.drive_components]
+
+    if ℒ.freetime
+        Δtₜ = zₜ[ℒ.timestep]
+    else
+        Δtₜ = ℒ.timestep
+    end
+
+    return ρ⃗̃ₜ₊₁ - expv(Δtₜ, ℒ.G(aₜ), ρ⃗̃ₜ)
+end
+
+# ------------------------------ Jacobian --------------------------------- #
+
+@views function jacobian(
+    ℒ::DensityOperatorExponentialIntegrator,
+    zₜ::AbstractVector,
+    zₜ₊₁::AbstractVector,
+    t::Int
+)
+    # get the state and control vectors
+    ρ⃗̃ₜ = zₜ[ℒ.density_operator_components]
+    aₜ = zₜ[ℒ.drive_components]
+
+    # obtain the timestep
+    if ℒ.freetime
+        Δtₜ = zₜ[ℒ.timestep]
+    else
+        Δtₜ = ℒ.timestep
+    end
+
+    # compute the generator
+    Gₜ = ℒ.G(aₜ)
+
+    # compute the exponential
+    expGₜ = sparse(exp(Δtₜ * Matrix(Gₜ)))
+
+    ∂ρ⃗̃ₜ₊₁ℒ = sparse(I, ℒ.dim, ℒ.dim)
+
+    ∂ρ⃗̃ₜℒ = -expGₜ
+
+    ∂aₜℒ = ForwardDiff.jacobian(
+        a -> -expv(Δtₜ, ℒ.G(a), ρ⃗̃ₜ),
+        aₜ
+    )
+
+    if ℒ.freetime
+        ∂Δtₜℒ = -Gₜ * (expGₜ * ρ⃗̃ₜ)
+        return ∂ρ⃗̃ₜℒ, ∂ρ⃗̃ₜ₊₁ℒ, ∂aₜℒ, ∂Δtₜℒ
+    else
+        return ∂ρ⃗̃ₜℒ, ∂ρ⃗̃ₜ₊₁ℒ, ∂aₜℒ
+    end
+end
+
 # ******************************************************************************* #
 
 @testitem "testing UnitaryExponentialIntegrator" begin
     using NamedTrajectories
     using PiccoloQuantumObjects
-    using ForwardDiff
+    using FiniteDiff
 
     T = 100
     H_drift = GATES[:Z]
@@ -353,15 +474,15 @@ end
 
     ∂Ũ⃗ₜℰ, ∂Ũ⃗ₜ₊₁ℰ, ∂aₜℰ, ∂Δtₜℰ = jacobian(ℰ, Z[1].data, Z[2].data, 1)
 
-    ∂ℰ_forwarddiff = ForwardDiff.jacobian(
+    ∂ℰ_finitediff= FiniteDiff.finite_difference_jacobian(
         zz -> ℰ(zz[1:Z.dim], zz[Z.dim+1:end], 1),
         [Z[1].data; Z[2].data]
     )
 
-    @test ∂Ũ⃗ₜℰ ≈ ∂ℰ_forwarddiff[:, 1:ℰ.dim]
-    @test ∂Ũ⃗ₜ₊₁ℰ ≈ ∂ℰ_forwarddiff[:, Z.dim .+ (1:ℰ.dim)]
-    @test ∂aₜℰ ≈ ∂ℰ_forwarddiff[:, Z.components.a]
-    @test ∂Δtₜℰ ≈ ∂ℰ_forwarddiff[:, Z.components.Δt]
+    @test isapprox(∂Ũ⃗ₜℰ, ∂ℰ_finitediff[:,1:ℰ.dim]; atol=1e-6)
+    @test isapprox(∂Ũ⃗ₜ₊₁ℰ, ∂ℰ_finitediff[:,Z.dim .+ (1:ℰ.dim)]; atol=1e-6)
+    @test isapprox(∂aₜℰ, ∂ℰ_finitediff[:,Z.components.a]; atol=1e-6)
+    @test isapprox(∂Δtₜℰ, ∂ℰ_finitediff[:,Z.components.Δt]; atol=1e-6)
 end
 
 @testitem "testing QuantumStateExponentialIntegrator" begin
@@ -410,4 +531,56 @@ end
     @test ∂ψ̃ₜ₊₁ℰ ≈ ∂ℰ_forwarddiff[:, Z.dim .+ (1:ℰ.dim)]
     @test ∂aₜℰ ≈ ∂ℰ_forwarddiff[:, Z.components.a]
     @test ∂Δtₜℰ ≈ ∂ℰ_forwarddiff[:, Z.components.Δt]
+end
+
+@testitem "testing DensityOperatorExponentialIntegrator" begin
+    using NamedTrajectories
+    using PiccoloQuantumObjects
+    using ForwardDiff
+
+    T = 100
+    H_drift = GATES[:Z]
+    H_drives = [GATES[:X], GATES[:Y]]
+    n_drives = length(H_drives)
+
+    ψ0 = [1, 0]
+    ψ1 = [0, 1]
+
+    sys = QuantumSystem(H_drift, H_drives, [ψ0 * ψ1'])
+
+
+    ρ_init = ψ0 * ψ0'
+    ρ_goal = ψ1 * ψ1'
+
+    ρ⃗̃_init = iso_dm(ρ_init)
+    ρ⃗̃_goal = iso_dm(ρ_goal)
+
+    dt = 0.1
+
+    Z = NamedTrajectory(
+        (
+            # ρ⃗̃ = linear_interpolation(ρ⃗̃_init, ρ⃗̃_goal, T),
+            ρ⃗̃ = randn(length(ρ⃗̃_init), T),
+            a = randn(n_drives, T),
+            da = randn(n_drives, T),
+            Δt = fill(dt, 1, T),
+        ),
+        controls=(:da, :Δt),
+        timestep=:Δt,
+        goal=(ρ⃗̃ = ρ⃗̃_goal,)
+    )
+
+    ℒ = DensityOperatorExponentialIntegrator(:ρ⃗̃, :a, sys, Z)
+
+    ∂ρ⃗̃ₜℒ, ∂ρ⃗̃ₜ₊₁ℒ, ∂aₜℒ, ∂Δtₜℒ = jacobian(ℒ, Z[1].data, Z[2].data, 1)
+
+    ∂ℒ_forwarddiff = ForwardDiff.jacobian(
+        zz -> ℒ(zz[1:Z.dim], zz[Z.dim+1:end], 1),
+        [Z[1].data; Z[2].data]
+    )
+
+    @test ∂ρ⃗̃ₜℒ ≈ ∂ℒ_forwarddiff[:, 1:ℒ.dim]
+    @test ∂ρ⃗̃ₜ₊₁ℒ ≈ ∂ℒ_forwarddiff[:, Z.dim .+ (1:ℒ.dim)]
+    @test ∂aₜℒ ≈ ∂ℒ_forwarddiff[:, Z.components.a]
+    @test ∂Δtₜℒ ≈ ∂ℒ_forwarddiff[:, Z.components.Δt]
 end
