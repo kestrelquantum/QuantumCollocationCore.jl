@@ -154,13 +154,13 @@ end
     ∂Ũ⃗ₜ₊₁ℰ = sparse(I, ℰ.dim, ℰ.dim)
     ∂Ũ⃗ₜℰ = -expĜₜ
 
-    ∂aₜℰ = -ForwardDiff.jacobian(
-        a -> expv(Δtₜ, Id ⊗ ℰ.G(a), Ũ⃗ₜ),
+    ∂aₜℰ = ForwardDiff.jacobian(
+        a -> -expv(Δtₜ, Id ⊗ ℰ.G(a), Ũ⃗ₜ),
         aₜ
     )
 
     if ℰ.freetime
-        ∂Δtₜℰ = -(Id ⊗ Gₜ) * expĜₜ * Ũ⃗ₜ
+        ∂Δtₜℰ = -(Id ⊗ Gₜ) * (expĜₜ * Ũ⃗ₜ)
         return ∂Ũ⃗ₜℰ, ∂Ũ⃗ₜ₊₁ℰ, ∂aₜℰ, ∂Δtₜℰ
     else
         return ∂Ũ⃗ₜℰ, ∂Ũ⃗ₜ₊₁ℰ, ∂aₜℰ
@@ -290,18 +290,18 @@ end
     # compute the generator
     Gₜ = ℰ.G(aₜ)
 
-    expGₜ = exp_eigen(Δtₜ * Gₜ)
+    expGₜ = sparse(exp_eigen(Δtₜ * Gₜ))
 
     ∂ψ̃ₜ₊₁ℰ = sparse(I, ℰ.dim, ℰ.dim)
     ∂ψ̃ₜℰ = -expGₜ
 
-    ∂aₜℰ = -ForwardDiff.jacobian(
-        a -> expv(Δtₜ, ℰ.G(a), ψ̃ₜ),
+    ∂aₜℰ = ForwardDiff.jacobian(
+        a -> -expv(Δtₜ, ℰ.G(a), ψ̃ₜ),
         aₜ
     )
 
     if ℰ.freetime
-        ∂Δtₜℰ = -Gₜ * expGₜ * ψ̃ₜ
+        ∂Δtₜℰ = -Gₜ * (expGₜ * ψ̃ₜ)
         return ∂ψ̃ₜℰ, ∂ψ̃ₜ₊₁ℰ, ∂aₜℰ, ∂Δtₜℰ
     else
         return ∂ψ̃ₜℰ, ∂ψ̃ₜ₊₁ℰ, ∂aₜℰ
@@ -430,6 +430,14 @@ end
         return ∂ρ⃗̃ₜℒ, ∂ρ⃗̃ₜ₊₁ℒ, ∂aₜℒ, ∂Δtₜℒ
     else
         return ∂ρ⃗̃ₜℒ, ∂ρ⃗̃ₜ₊₁ℒ, ∂aₜℒ
+    end
+end
+
+function get_comps(P::DensityOperatorExponentialIntegrator, traj::NamedTrajectory)
+    if P.freetime
+        return P.density_operator_components, P.drive_components, traj.components[traj.timestep]
+    else
+        return P.density_operator_components, P.drive_components
     end
 end
 
