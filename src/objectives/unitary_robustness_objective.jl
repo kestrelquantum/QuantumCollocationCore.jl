@@ -1,13 +1,13 @@
 export UnitaryRobustnessObjective
 export PairwiseUnitaryRobustnessObjective
 
-### 
+###
 ### UnitaryRobustnessObjective
 ###
 
 @doc raw"""
 UnitaryRobustnessObjective(;
-    H::::Union{OperatorType, Nothing}=nothing,
+    H::::Union{AbstractPiccoloOperator, Nothing}=nothing,
     eval_hessian::Bool=false,
     symb::Symbol=:Ũ⃗
 )
@@ -33,7 +33,7 @@ R_{Robust}(a) = \frac{1}{N} \norm{R}^2_F
 where N is the dimension of the Hilbert space.
 """
 function UnitaryRobustnessObjective(;
-    H_error::Union{OperatorType, Nothing}=nothing,
+    H_error::Union{AbstractPiccoloOperator, Nothing}=nothing,
     eval_hessian::Bool=false,
     symb::Symbol=:Ũ⃗
 )
@@ -121,14 +121,14 @@ function UnitaryRobustnessObjective(;
     return Objective(L, ∇L, ∂²L, ∂²L_structure, Dict[params])
 end
 
-### 
+###
 ### PairwiseUnitaryRobustnessObjective
 ###
 
 """
     PairwiseUnitaryRobustnessObjective(;
-        H1::Union{OperatorType, Nothing}=nothing,
-        H2_error::Union{OperatorType, Nothing}=nothing,
+        H1::Union{AbstractPiccoloOperator, Nothing}=nothing,
+        H2_error::Union{AbstractPiccoloOperator, Nothing}=nothing,
         symb1::Symbol=:Ũ⃗1,
         symb2::Symbol=:Ũ⃗2,
         eval_hessian::Bool=false,
@@ -138,8 +138,8 @@ Create a control objective which penalizes the sensitivity of the infidelity to 
 defined in the subspaces of the control dynamics, thereby realizing robust control.
 """
 function PairwiseUnitaryRobustnessObjective(;
-    H1_error::Union{OperatorType, Nothing}=nothing,
-    H2_error::Union{OperatorType, Nothing}=nothing,
+    H1_error::Union{AbstractPiccoloOperator, Nothing}=nothing,
+    H2_error::Union{AbstractPiccoloOperator, Nothing}=nothing,
     symb1::Symbol=:Ũ⃗1,
     symb2::Symbol=:Ũ⃗2,
     eval_hessian::Bool=false,

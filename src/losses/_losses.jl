@@ -13,6 +13,7 @@ using SparseArrays
 using ForwardDiff
 using Symbolics
 using TestItemRunner
+using ExponentialAction
 
 # TODO:
 # - [ ] Do not reference the Z object in the loss (components only / remove "name")

@@ -149,10 +149,10 @@ end
 
     Id = I(ℰ.ketdim)
 
-    expĜₜ = Id ⊗ exp_eigen(Δtₜ * Gₜ)
+    expGₜ = exp_eigen(Δtₜ * Gₜ)
 
     ∂Ũ⃗ₜ₊₁ℰ = sparse(I, ℰ.dim, ℰ.dim)
-    ∂Ũ⃗ₜℰ = -expĜₜ
+    ∂Ũ⃗ₜℰ = -Id ⊗ expGₜ
 
     ∂aₜℰ = ForwardDiff.jacobian(
         a -> -expv(Δtₜ, Id ⊗ ℰ.G(a), Ũ⃗ₜ),
@@ -160,7 +160,7 @@ end
     )
 
     if ℰ.freetime
-        ∂Δtₜℰ = -(Id ⊗ Gₜ) * (expĜₜ * Ũ⃗ₜ)
+        ∂Δtₜℰ = -(Id ⊗ (Gₜ * expGₜ)) * Ũ⃗ₜ
         return ∂Ũ⃗ₜℰ, ∂Ũ⃗ₜ₊₁ℰ, ∂aₜℰ, ∂Δtₜℰ
     else
         return ∂Ũ⃗ₜℰ, ∂Ũ⃗ₜ₊₁ℰ, ∂aₜℰ

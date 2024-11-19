@@ -45,7 +45,7 @@ abstract type AbstractOptions end
     print_frequency_time = 0.0
     skip_finalize_solution_call = "no"
     hsllib = nothing
-    hessian_approximation = "exact"
+    hessian_approximation = "limited-memory"
     recalc_y = "no"
     recalc_y_feas_tol = 1.0e-6
     linear_solver = "mumps"
