@@ -32,4 +32,7 @@ include("problems.jl")
 include("save_load_utils.jl")
 @reexport using .SaveLoadUtils
 
+include("problem_solvers.jl")
+@reexport using .ProblemSolvers
+
 end
