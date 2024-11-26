@@ -7,7 +7,7 @@ using ExponentialAction
 function exp_eigen(G::AbstractMatrix)
     Ĥ = Hermitian(Matrix(Isomorphisms.H(G)))
     λ, V = eigen(Ĥ)
-    expG = iso(sparse(V * Diagonal(exp.(-im * λ)) * V'))
+    expG = Isomorphisms.iso(sparse(V * Diagonal(exp.(-im * λ)) * V'))
     droptol!(expG, 1e-12)
     return expG
 end
