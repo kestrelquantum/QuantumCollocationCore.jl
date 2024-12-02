@@ -2,6 +2,8 @@
 This file includes expoential integrators for states and unitaries
 """
 
+const ⊗ = kron
+
 using ExponentialAction
 
 function exp_eigen(G::AbstractMatrix)
@@ -508,8 +510,8 @@ end
     U_init = GATES[:I]
     U_goal = GATES[:X]
 
-    ψ̃_init = ket_to_iso([1, 0])
-    ψ̃_goal = ket_to_iso([0, 1])
+    ψ̃_init = ket_to_iso([1.0, 0.0])
+    ψ̃_goal = ket_to_iso([0.0, 1.0])
 
     dt = 0.1
 
@@ -551,17 +553,17 @@ end
     H_drives = [GATES[:X], GATES[:Y]]
     n_drives = length(H_drives)
 
-    ψ0 = [1, 0]
-    ψ1 = [0, 1]
+    ψ0 = [1.0, 0.0]
+    ψ1 = [0.0, 1.0]
 
-    sys = QuantumSystem(H_drift, H_drives, [ψ0 * ψ1'])
+    sys = OpenQuantumSystem(H_drift, H_drives, [ψ0 * ψ1'])
 
 
     ρ_init = ψ0 * ψ0'
     ρ_goal = ψ1 * ψ1'
 
-    ρ⃗̃_init = iso_dm(ρ_init)
-    ρ⃗̃_goal = iso_dm(ρ_goal)
+    ρ⃗̃_init = density_to_iso_vec(ρ_init)
+    ρ⃗̃_goal = density_to_iso_vec(ρ_goal)
 
     dt = 0.1
 
