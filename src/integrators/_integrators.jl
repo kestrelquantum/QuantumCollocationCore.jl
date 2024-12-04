@@ -33,6 +33,7 @@ using SparseArrays
 using ForwardDiff
 using TestItemRunner
 
+const ⊗ = kron
 
 abstract type AbstractIntegrator end
 
