@@ -41,7 +41,6 @@ after the solver terminates.
 mutable struct QuantumControlProblem <: AbstractProblem
     optimizer::Ipopt.Optimizer
     variables::Vector{MOI.VariableIndex}
-    system::AbstractQuantumSystem
     trajectory::NamedTrajectory
     integrators::Union{Nothing,Vector{<:AbstractIntegrator}}
     ipopt_options::IpoptOptions
@@ -50,7 +49,6 @@ mutable struct QuantumControlProblem <: AbstractProblem
 end
 
 function QuantumControlProblem(
-    system::AbstractQuantumSystem,
     traj::NamedTrajectory,
     obj::Objective,
     dynamics::QuantumDynamics;
@@ -144,7 +142,6 @@ function QuantumControlProblem(
     return QuantumControlProblem(
         optimizer,
         variables,
-        system,
         traj,
         dynamics.integrators,
         ipopt_options,
@@ -154,7 +151,6 @@ function QuantumControlProblem(
 end
 
 function QuantumControlProblem(
-    system::AbstractQuantumSystem,
     traj::NamedTrajectory,
     obj::Objective,
     integrators::Vector{<:AbstractIntegrator};
@@ -175,7 +171,6 @@ function QuantumControlProblem(
         verbose=piccolo_options.verbose
     )
     return QuantumControlProblem(
-        system,
         traj,
         obj,
         dynamics;
@@ -187,7 +182,6 @@ end
 
 # constructor that accepts just an AbstractIntegrator
 function QuantumControlProblem(
-    system::AbstractQuantumSystem,
     traj::NamedTrajectory,
     obj::Objective,
     integrator::AbstractIntegrator;
@@ -208,7 +202,6 @@ function QuantumControlProblem(
         verbose=piccolo_options.verbose
     )
     return QuantumControlProblem(
-        system,
         traj,
         obj,
         dynamics;
@@ -219,7 +212,6 @@ function QuantumControlProblem(
 end
 
 function QuantumControlProblem(
-    system::AbstractQuantumSystem,
     traj::NamedTrajectory,
     obj::Objective,
     f::Function;
@@ -240,7 +232,6 @@ function QuantumControlProblem(
         verbose=piccolo_options.verbose
     )
     return QuantumControlProblem(
-        system,
         traj,
         obj,
         dynamics;
