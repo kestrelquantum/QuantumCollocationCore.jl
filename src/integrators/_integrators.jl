@@ -31,7 +31,7 @@ using PiccoloQuantumObjects
 using LinearAlgebra
 using SparseArrays
 using ForwardDiff
-using TestItemRunner
+using TestItems
 
 const ⊗ = kron
 

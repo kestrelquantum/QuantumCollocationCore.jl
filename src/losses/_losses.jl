@@ -12,7 +12,7 @@ using LinearAlgebra
 using SparseArrays
 using ForwardDiff
 using Symbolics
-using TestItemRunner
+using TestItems
 using ExponentialAction
 
 # TODO:

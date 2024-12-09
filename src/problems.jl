@@ -19,7 +19,7 @@ using ..Objectives
 using TrajectoryIndexingUtils
 using NamedTrajectories
 using PiccoloQuantumObjects
-using TestItemRunner
+using TestItems
 using LinearAlgebra
 using JLD2
 using Ipopt
