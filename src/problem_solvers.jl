@@ -7,7 +7,7 @@ using ..SaveLoadUtils
 using NamedTrajectories
 using QuantumCollocationCore
 using MathOptInterface
-using TestItemRunner
+using TestItems
 const MOI = MathOptInterface
 
 function solve!(

@@ -12,7 +12,7 @@ using PiccoloQuantumObjects
 using LinearAlgebra
 using SparseArrays
 using Symbolics
-using TestItemRunner
+using TestItems
 
 include("quantum_objective.jl")
 include("unitary_infidelity_objective.jl")
