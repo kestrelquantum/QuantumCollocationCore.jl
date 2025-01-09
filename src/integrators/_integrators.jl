@@ -61,36 +61,6 @@ abstract type UnitaryIntegrator <: QuantumIntegrator end
 abstract type QuantumStateIntegrator <: QuantumIntegrator end
 abstract type DensityOperatorIntegrator <: QuantumIntegrator end
 
-function update_state_components!(
-    integrator::QuantumIntegrator, 
-    state_name::Symbol,
-    traj::NamedTrajectory
-)
-    integrator.state_components = traj.components[state_name]
-    return nothing 
-end
-
-function update_drive_components!(
-    integrator::QuantumIntegrator, 
-    drive_name::Symbol,
-    traj::NamedTrajectory
-)
-    integrator.drive_components = traj.components[drive_name]
-    return nothing 
-end
-
-function update_variable_components!(
-    integrator::DerivativeIntegrator,
-    variable_name::Symbol,
-    derivative_name::Symbol,
-    traj::NamedTrajectory
-)
-    integrator.variable_components = traj.components[variable_name]
-    return nothing 
-end
-
-
-
 include("_integrator_utils.jl")
 include("derivative_integrator.jl")
 include("pade_integrators.jl")
