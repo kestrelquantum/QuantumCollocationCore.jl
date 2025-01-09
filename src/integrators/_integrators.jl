@@ -31,13 +31,11 @@ using PiccoloQuantumObjects
 using LinearAlgebra
 using SparseArrays
 using ForwardDiff
-using TestItemRunner
+using TestItems
 
 const ⊗ = kron
 
 abstract type AbstractIntegrator end
-
-abstract type QuantumIntegrator <: AbstractIntegrator end
 
 function comps(P::AbstractIntegrator, traj::NamedTrajectory)
     state_comps = traj.components[state(P)]
@@ -56,6 +54,12 @@ function comps(P::AbstractIntegrator, traj::NamedTrajectory)
 end
 
 
+
+abstract type QuantumIntegrator <: AbstractIntegrator end
+
+abstract type UnitaryIntegrator <: QuantumIntegrator end
+abstract type QuantumStateIntegrator <: QuantumIntegrator end
+abstract type DensityOperatorIntegrator <: QuantumIntegrator end
 
 include("_integrator_utils.jl")
 include("derivative_integrator.jl")

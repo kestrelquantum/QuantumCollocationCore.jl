@@ -19,7 +19,7 @@ using ..Objectives
 using TrajectoryIndexingUtils
 using NamedTrajectories
 using PiccoloQuantumObjects
-using TestItemRunner
+using TestItems
 using LinearAlgebra
 using JLD2
 using Ipopt
@@ -58,6 +58,7 @@ function QuantumControlProblem(
     additional_objective::Union{Nothing, Objective}=nothing,
     constraints::Vector{<:AbstractConstraint}=AbstractConstraint[],
     params::Dict{Symbol, Any}=Dict{Symbol, Any}(),
+    control_name::Symbol=:a,
     return_evaluator=false,
     kwargs...
 )
@@ -111,7 +112,7 @@ function QuantumControlProblem(
     linear_constraints = LinearConstraint[con for con ∈ constraints if con isa LinearConstraint]
 
     if piccolo_options.build_trajectory_constraints
-        linear_constraints = LinearConstraint[trajectory_constraints(traj); linear_constraints]
+        linear_constraints = LinearConstraint[trajectory_constraints(traj; control_name=control_name); linear_constraints]
     end
 
     optimizer = Ipopt.Optimizer()

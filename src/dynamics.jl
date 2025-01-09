@@ -72,7 +72,7 @@ function dynamics_jacobian(
         ∂ = zeros(eltype(zₜ), dynamics_dim, 2traj.dim)
         for (integrator, integrator_comps) ∈ zip(integrators, dynamics_comps)
             if integrator isa QuantumIntegrator
-                if integrator isa QuantumPadeIntegrator && integrator.autodiff
+                if integrator.autodiff
                     ∂Pᵢ(z1, z2, t) = ForwardDiff.jacobian(
                         zz -> integrator(zz[1:traj.dim], zz[traj.dim+1:end], t),
                         [z1; z2]

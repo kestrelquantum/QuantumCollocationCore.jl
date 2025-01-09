@@ -7,9 +7,35 @@ using ..SaveLoadUtils
 using NamedTrajectories
 using QuantumCollocationCore
 using MathOptInterface
-using TestItemRunner
+using TestItems
 const MOI = MathOptInterface
 
+
+"""
+   solve!(prob::QuantumControlProblem;
+        init_traj=nothing,
+        save_path=nothing,
+        max_iter=prob.ipopt_options.max_iter,
+        linear_solver=prob.ipopt_options.linear_solver,
+        print_level=prob.ipopt_options.print_level,
+        remove_slack_variables=false,
+        callback=nothing
+        # state_type=:unitary,
+        # print_fidelity=false,
+    )
+
+    Call optimization solver to solve the quantum control problem with parameters and callbacks.
+
+# Arguments
+- `prob::QuantumControlProblem`: The quantum control problem to solve.
+- `init_traj::NamedTrajectory`: Initial guess for the control trajectory. If not provided, a random guess will be generated.
+- `save_path::String`: Path to save the problem after optimization.
+- `max_iter::Int`: Maximum number of iterations for the optimization solver.
+- `linear_solver::String`: Linear solver to use for the optimization solver (e.g., "mumps", "paradiso", etc).
+- `print_level::Int`: Verbosity level for the solver.
+- `remove_slack_variables::Bool`: Remove slack variables from the trajectory after optimization.
+- `callback::Function`: Callback function to call during optimization steps.
+"""
 function solve!(
     prob::QuantumControlProblem;
     init_traj=nothing,
@@ -18,6 +44,7 @@ function solve!(
     linear_solver::String=prob.ipopt_options.linear_solver,
     print_level::Int=prob.ipopt_options.print_level,
     remove_slack_variables::Bool=false,
+    callback=nothing
     # state_type::Symbol=:unitary,
     # print_fidelity::Bool=false,
 )
@@ -34,15 +61,10 @@ function solve!(
     else
         set_trajectory!(prob)
     end
-
-    # if print_fidelity
-    #     if state_type == :ket
-    #         fids = fidelity(prob)
-    #         println("\nInitial Fidelities: $fids")
-    #     elseif state_type == :unitary
-    #         fids = unitary_rollout_fidelity(prob)
-    #         println("\nInitial Fidelity: $fids")
-
+    
+    if !isnothing(callback)
+        MOI.set(prob.optimizer, Ipopt.CallbackFunction(), callback)
+    end
 
     MOI.optimize!(prob.optimizer)
 

@@ -13,7 +13,7 @@ Implements the initial and final value constraints and bounds constraints on the
 and states as specified by traj.
 
 """
-function trajectory_constraints(traj::NamedTrajectory)
+function trajectory_constraints(traj::NamedTrajectory; control_name::Symbol=:a)
     cons = AbstractConstraint[]
 
     init_names = []
@@ -32,7 +32,11 @@ function trajectory_constraints(traj::NamedTrajectory)
 
     # add final equality constraints
     for (name, val) ∈ pairs(traj.final)
-        ts = [traj.T]
+        if occursin(string(control_name), string(name))
+            ts = [traj.T - 1, traj.T]
+        else
+            ts = [traj.T]
+        end
         js = traj.components[name]
         con_label = "final value of $name"
         eq_con = EqualityConstraint(ts, js, val, traj.dim; label=con_label)
@@ -43,11 +47,19 @@ function trajectory_constraints(traj::NamedTrajectory)
     # add bounds constraints
     for (name, bound) ∈ pairs(traj.bounds)
         if name ∈ init_names && name ∈ final_names
-            ts = 2:traj.T-1
+            if occursin(string(control_name), string(name))
+                ts = 2:traj.T-2
+            else
+                ts = 1:traj.T-1
+            end
         elseif name ∈ init_names && !(name ∈ final_names)
             ts = 2:traj.T
         elseif name ∈ final_names && !(name ∈ init_names)
-            ts = 1:traj.T-1
+            if occursin(string(control_name), string(name))
+                ts = 1:traj.T-2
+            else
+                ts = 1:traj.T-1
+            end
         else
             ts = 1:traj.T
         end
@@ -100,9 +112,9 @@ function EqualityConstraint(
     @assert isa(val, R) ||
         (isa(val, Vector{R}) && isa(j, AbstractArray{Int})) &&
         length(val) == length(j) """
-    if j and val are both arrays, dimensions must match:
-        length(j)   = $(length(j))
-        length(val) = $(length(val))
+        if j and val are both arrays, dimensions must match:
+            length(j)   = $(length(j))
+            length(val) = $(length(val))
     """
 
     if isa(val, R) && isa(j, AbstractArray{Int})
@@ -115,6 +127,32 @@ function EqualityConstraint(
         [val...],
         vardim,
         label
+    )
+end
+
+function EqualityConstraint(
+    name::Symbol, 
+    val::Union{R, Vector{R}},
+    ts::AbstractArray{Int},
+    traj::NamedTrajectory;
+) where R
+    comps = traj.components[name]
+    if val isa R
+        val = fill(val, length(comps))
+    else
+        @assert length(val) == length(comps) """
+            if val is an array, dimensions must match:
+                length(comps) = $(length(comps))
+                length(val)   = $(length(val))
+        """
+    end
+
+    return EqualityConstraint(
+        ts,
+        comps,
+        val,
+        traj.dim,
+        "equality constraint on $name"
     )
 end
 
