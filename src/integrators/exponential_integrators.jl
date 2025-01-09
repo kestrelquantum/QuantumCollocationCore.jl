@@ -15,17 +15,11 @@ function exp_eigen(G::AbstractMatrix)
 end
 
 # ----------------------------------------------------------------------------- #
-#                         Quantum Exponential Integrators                       #
-# ----------------------------------------------------------------------------- #
-
-abstract type QuantumExponentialIntegrator <: QuantumIntegrator end
-
-# ----------------------------------------------------------------------------- #
 #                         Unitary Exponential Integrator                        #
 # ----------------------------------------------------------------------------- #
 
-struct UnitaryExponentialIntegrator <: QuantumExponentialIntegrator
-    unitary_components::Vector{Int}
+mutable struct UnitaryExponentialIntegrator <: UnitaryIntegrator
+    state_components::Vector{Int}
     drive_components::Vector{Int}
     timestep::Union{Real, Int}
     freetime::Bool
@@ -47,7 +41,7 @@ struct UnitaryExponentialIntegrator <: QuantumExponentialIntegrator
 
         ketdim = Int(sqrt(dim ÷ 2))
 
-        unitary_components = traj.components[unitary_name]
+        state_components = traj.components[unitary_name]
 
         if drive_name isa Tuple
             drive_components = vcat((traj.components[s] for s ∈ drive_name)...)
@@ -68,7 +62,7 @@ struct UnitaryExponentialIntegrator <: QuantumExponentialIntegrator
         end
 
         return new(
-            unitary_components,
+            state_components,
             drive_components,
             timestep,
             freetime,
@@ -102,9 +96,9 @@ end
 
 function get_comps(P::UnitaryExponentialIntegrator, traj::NamedTrajectory)
     if P.freetime
-        return P.unitary_components, P.drive_components, traj.components[traj.timestep]
+        return P.state_components, P.drive_components, traj.components[traj.timestep]
     else
-        return P.unitary_components, P.drive_components
+        return P.state_components, P.drive_components
     end
 end
 
@@ -115,8 +109,8 @@ end
     zₜ₊₁::AbstractVector,
     t::Int
 )
-    Ũ⃗ₜ₊₁ = zₜ₊₁[ℰ.unitary_components]
-    Ũ⃗ₜ = zₜ[ℰ.unitary_components]
+    Ũ⃗ₜ₊₁ = zₜ₊₁[ℰ.state_components]
+    Ũ⃗ₜ = zₜ[ℰ.state_components]
     aₜ = zₜ[ℰ.drive_components]
 
     if ℰ.freetime
@@ -136,7 +130,7 @@ end
     t::Int
 )
     # get the state and control vectors
-    Ũ⃗ₜ = zₜ[ℰ.unitary_components]
+    Ũ⃗ₜ = zₜ[ℰ.state_components]
     aₜ = zₜ[ℰ.drive_components]
 
     # obtain the timestep
@@ -169,7 +163,11 @@ end
     end
 end
 
-struct QuantumStateExponentialIntegrator <: QuantumExponentialIntegrator
+# ----------------------------------------------------------------------------- #
+#                         Quantum State Exponential Integrator                  #
+# ----------------------------------------------------------------------------- #
+
+mutable struct QuantumStateExponentialIntegrator <: QuantumStateIntegrator
     state_components::Vector{Int}
     drive_components::Vector{Int}
     timestep::Union{Real, Int}
@@ -314,8 +312,8 @@ end
 #                Density Operator Exponential Integrator                        #
 # ----------------------------------------------------------------------------- #
 
-struct DensityOperatorExponentialIntegrator <: QuantumExponentialIntegrator
-    density_operator_components::Vector{Int}
+mutable struct DensityOperatorExponentialIntegrator <: DensityOperatorIntegrator
+    state_components::Vector{Int}
     drive_components::Vector{Int}
     timestep::Union{Real, Int}
     freetime::Bool
@@ -336,9 +334,9 @@ struct DensityOperatorExponentialIntegrator <: QuantumExponentialIntegrator
         dim = traj.dims[density_operator_name]
         ketdim = size(sys.H(zeros(sys.n_drives)), 1)
 
-        density_operator_components = traj.components[density_operator_name]
+        state_components = traj.components[density_operator_name]
 
-        println(length(density_operator_components))
+        println(length(state_components))
 
         if drive_name isa Tuple
             drive_components = vcat((traj.components[s] for s ∈ drive_name)...)
@@ -359,7 +357,7 @@ struct DensityOperatorExponentialIntegrator <: QuantumExponentialIntegrator
         end
 
         return new(
-            density_operator_components,
+            state_components,
             drive_components,
             timestep,
             freetime,
@@ -380,8 +378,8 @@ end
     zₜ₊₁::AbstractVector,
     t::Int
 )
-    ρ⃗̃ₜ₊₁ = zₜ₊₁[ℒ.density_operator_components]
-    ρ⃗̃ₜ = zₜ[ℒ.density_operator_components]
+    ρ⃗̃ₜ₊₁ = zₜ₊₁[ℒ.state_components]
+    ρ⃗̃ₜ = zₜ[ℒ.state_components]
     aₜ = zₜ[ℒ.drive_components]
 
     if ℒ.freetime
@@ -402,7 +400,7 @@ end
     t::Int
 )
     # get the state and control vectors
-    ρ⃗̃ₜ = zₜ[ℒ.density_operator_components]
+    ρ⃗̃ₜ = zₜ[ℒ.state_components]
     aₜ = zₜ[ℒ.drive_components]
 
     # obtain the timestep
@@ -437,9 +435,9 @@ end
 
 function get_comps(P::DensityOperatorExponentialIntegrator, traj::NamedTrajectory)
     if P.freetime
-        return P.density_operator_components, P.drive_components, traj.components[traj.timestep]
+        return P.state_components, P.drive_components, traj.components[traj.timestep]
     else
-        return P.density_operator_components, P.drive_components
+        return P.state_components, P.drive_components
     end
 end
 
