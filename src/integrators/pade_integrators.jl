@@ -190,24 +190,14 @@ end
 
 
 # ----------------------------------------------------------------
-#                       Quantum Pade Integrator
-# ----------------------------------------------------------------
-
-
-
-abstract type QuantumPadeIntegrator <: QuantumIntegrator end
-
-
-
-# ----------------------------------------------------------------
 #                       Unitary Pade Integrator
 # ----------------------------------------------------------------
 
 
 """
 """
-struct UnitaryPadeIntegrator <: QuantumPadeIntegrator
-    unitary_components::Vector{Int}
+mutable struct UnitaryPadeIntegrator <: UnitaryIntegrator
+    state_components::Vector{Int}
     drive_components::Vector{Int}
     timestep::Union{Real, Int} # either the timestep or the index of the timestep
     freetime::Bool
@@ -264,7 +254,7 @@ struct UnitaryPadeIntegrator <: QuantumPadeIntegrator
         dim = traj.dims[unitary_name]
         ketdim = Int(sqrt(dim ÷ 2))
 
-        unitary_components = traj.components[unitary_name]
+        state_components = traj.components[unitary_name]
 
         if drive_name isa Tuple
             drive_components = vcat((traj.components[s] for s ∈ drive_name)...)
@@ -285,7 +275,7 @@ struct UnitaryPadeIntegrator <: QuantumPadeIntegrator
         end
 
         return new(
-            unitary_components,
+            state_components,
             drive_components,
             timestep,
             freetime,
@@ -303,9 +293,9 @@ end
 
 function get_comps(P::UnitaryPadeIntegrator, traj::NamedTrajectory)
     if P.freetime
-        return P.unitary_components, P.drive_components, traj.components[traj.timestep]
+        return P.state_components, P.drive_components, traj.components[traj.timestep]
     else
-        return P.unitary_components, P.drive_components
+        return P.state_components, P.drive_components
     end
 end
 
@@ -356,8 +346,8 @@ end
     zₜ₊₁::AbstractVector,
     t::Int
 )
-    Ũ⃗ₜ₊₁ = zₜ₊₁[P.unitary_components]
-    Ũ⃗ₜ = zₜ[P.unitary_components]
+    Ũ⃗ₜ₊₁ = zₜ₊₁[P.state_components]
+    Ũ⃗ₜ = zₜ[P.state_components]
     aₜ = zₜ[P.drive_components]
 
     if P.freetime
@@ -427,8 +417,8 @@ end
     t::Int
 )
     # obtain state and control vectors
-    Ũ⃗ₜ₊₁ = zₜ₊₁[P.unitary_components]
-    Ũ⃗ₜ = zₜ[P.unitary_components]
+    Ũ⃗ₜ₊₁ = zₜ₊₁[P.state_components]
+    Ũ⃗ₜ = zₜ[P.state_components]
     aₜ = zₜ[P.drive_components]
 
     Gₜ = P.G(aₜ)
@@ -462,7 +452,7 @@ end
 #                  Quantum State Pade Integrator
 # ----------------------------------------------------------------
 
-struct QuantumStatePadeIntegrator <: QuantumPadeIntegrator
+mutable struct QuantumStatePadeIntegrator <: QuantumStateIntegrator
     state_components::Vector{Int}
     drive_components::Vector{Int}
     timestep::Union{Real, Int} # either the timestep or the index of the timestep
