@@ -71,8 +71,8 @@ function dynamics_jacobian(
     @views function ∂f(zₜ, zₜ₊₁, t)
         ∂ = zeros(eltype(zₜ), dynamics_dim, 2traj.dim)
         for (integrator, integrator_comps) ∈ zip(integrators, dynamics_comps)
-            ∂fᵢ = Integrators.jacobian(integrator, zₜ, zₜ₊₁, t)
-            ∂[integrator_comps, 1:traj.dim] = ∂fᵢ
+            ∂[integrator_comps, 1:traj.dim] = 
+                Integrators.jacobian(integrator, zₜ, zₜ₊₁, t)
         end
         return sparse(∂)
     end
