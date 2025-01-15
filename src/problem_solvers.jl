@@ -7,6 +7,7 @@ using ..SaveLoadUtils
 using NamedTrajectories
 using QuantumCollocationCore
 using MathOptInterface
+using Ipopt
 using TestItems
 const MOI = MathOptInterface
 
