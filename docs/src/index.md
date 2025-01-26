@@ -2,9 +2,7 @@
 CurrentModule = QuantumCollocationCore
 ```
 
-# QuantumCollocationCore
-
-Documentation for [QuantumCollocationCore](https://github.com/aarontrowbridge/QuantumCollocationCore.jl).
+# QuantumCollocationCore.jl
 
 ```@index
 ```
