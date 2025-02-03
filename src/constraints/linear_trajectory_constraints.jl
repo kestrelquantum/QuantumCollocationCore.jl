@@ -50,7 +50,7 @@ function trajectory_constraints(traj::NamedTrajectory; control_name::Symbol=:a)
             if occursin(string(control_name), string(name))
                 ts = 2:traj.T-2
             else
-                ts = 1:traj.T-1
+                ts = 2:traj.T-1
             end
         elseif name ∈ init_names && !(name ∈ final_names)
             ts = 2:traj.T
