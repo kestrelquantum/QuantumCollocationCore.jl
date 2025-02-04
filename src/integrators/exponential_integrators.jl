@@ -129,6 +129,8 @@ end
     zₜ₊₁::AbstractVector,
     t::Int
 )
+    ∂ℰ = spzeros(ℰ.dim, 2ℰ.zdim)
+
     # get the state and control vectors
     Ũ⃗ₜ = zₜ[ℰ.state_components]
     aₜ = zₜ[ℰ.drive_components]
@@ -136,7 +138,8 @@ end
     # obtain the timestep
     if ℰ.freetime
         Δtₜ = zₜ[ℰ.timestep]
-    else
+
+   else
         Δtₜ = ℰ.timestep
     end
 
@@ -147,20 +150,24 @@ end
 
     expGₜ = exp_eigen(Δtₜ * Gₜ)
 
-    ∂Ũ⃗ₜ₊₁ℰ = sparse(I, ℰ.dim, ℰ.dim)
-    ∂Ũ⃗ₜℰ = -Id ⊗ expGₜ
+    # ∂Ũ⃗ₜ₊₁ℰ
+    ∂ℰ[:, ℰ.zdim .+ ℰ.state_components] = sparse(I, ℰ.dim, ℰ.dim)
 
-    ∂aₜℰ = ForwardDiff.jacobian(
+    # ∂Ũ⃗ₜℰ
+    ∂ℰ[:, ℰ.state_components] = -Id ⊗ expGₜ
+
+    #∂aₜℰ
+    ∂ℰ[:, ℰ.drive_components] = ForwardDiff.jacobian(
         a -> -expv(Δtₜ, Id ⊗ ℰ.G(a), Ũ⃗ₜ),
         aₜ
     )
 
     if ℰ.freetime
-        ∂Δtₜℰ = -(Id ⊗ (Gₜ * expGₜ)) * Ũ⃗ₜ
-        return ∂Ũ⃗ₜℰ, ∂Ũ⃗ₜ₊₁ℰ, ∂aₜℰ, ∂Δtₜℰ
-    else
-        return ∂Ũ⃗ₜℰ, ∂Ũ⃗ₜ₊₁ℰ, ∂aₜℰ
+        # ∂Δtₜℰ
+        ∂ℰ[:, ℰ.timestep] = -(Id ⊗ (Gₜ * expGₜ)) * Ũ⃗ₜ
     end
+
+    return ∂ℰ
 end
 
 # ----------------------------------------------------------------------------- #
@@ -276,6 +283,8 @@ end
     zₜ₊₁::AbstractVector,
     t::Int
 )
+    ∂ℰ = spzeros(ℰ.dim, 2ℰ.zdim)
+
     # get the state and control vectors
     ψ̃ₜ = zₜ[ℰ.state_components]
     aₜ = zₜ[ℰ.drive_components]
@@ -290,25 +299,27 @@ end
     # compute the generator
     Gₜ = ℰ.G(aₜ)
 
-    expGₜ = sparse(exp_eigen(Δtₜ * Gₜ))
+    expGₜ = exp_eigen(Δtₜ * Gₜ)
 
-    ∂ψ̃ₜ₊₁ℰ = sparse(I, ℰ.dim, ℰ.dim)
-    ∂ψ̃ₜℰ = -expGₜ
+    # ∂ψ̃ₜ₊₁ℰ
+    ∂ℰ[:, ℰ.zdim .+ ℰ.state_components] = sparse(I, ℰ.dim, ℰ.dim)
 
-    ∂aₜℰ = ForwardDiff.jacobian(
+    # ∂ψ̃ₜℰ
+    ∂ℰ[:, ℰ.state_components] = -expGₜ
+
+    # ∂aₜℰ
+    ∂ℰ[:, ℰ.drive_components] = ForwardDiff.jacobian(
         a -> -expv(Δtₜ, ℰ.G(a), ψ̃ₜ),
         aₜ
     )
 
     if ℰ.freetime
-        ∂Δtₜℰ = -Gₜ * (expGₜ * ψ̃ₜ)
-        return ∂ψ̃ₜℰ, ∂ψ̃ₜ₊₁ℰ, ∂aₜℰ, ∂Δtₜℰ
-    else
-        return ∂ψ̃ₜℰ, ∂ψ̃ₜ₊₁ℰ, ∂aₜℰ
+        # ∂Δtₜℰ
+        ∂ℰ[:, ℰ.timestep] = -(Gₜ * expGₜ) * ψ̃ₜ
     end
-end
 
-# ----------------------------------------------------------------------------- #
+    return ∂ℰ
+end
 #                Density Operator Exponential Integrator                        #
 # ----------------------------------------------------------------------------- #
 
@@ -327,7 +338,7 @@ mutable struct DensityOperatorExponentialIntegrator <: DensityOperatorIntegrator
     function DensityOperatorExponentialIntegrator(
         density_operator_name::Symbol,
         drive_name::Union{Symbol, Tuple{Vararg{Symbol}}},
-        sys::AbstractQuantumSystem,
+        sys::OpenQuantumSystem,
         traj::NamedTrajectory;
         autodiff::Bool=false
     )
@@ -399,6 +410,8 @@ end
     zₜ₊₁::AbstractVector,
     t::Int
 )
+    ∂ℒ = spzeros(ℒ.dim, 2ℒ.zdim)
+
     # get the state and control vectors
     ρ⃗̃ₜ = zₜ[ℒ.state_components]
     aₜ = zₜ[ℒ.drive_components]
@@ -413,24 +426,26 @@ end
     # compute the generator
     Gₜ = ℒ.G(aₜ)
 
-    # compute the exponential
-    expGₜ = sparse(exp(Δtₜ * Matrix(Gₜ)))
+    expGₜ = exp(Matrix(Δtₜ * Gₜ))
 
-    ∂ρ⃗̃ₜ₊₁ℒ = sparse(I, ℒ.dim, ℒ.dim)
+    # ∂ρ⃗̃ₜ₊₁ℒ
+    ∂ℒ[:, ℒ.zdim .+ ℒ.state_components] = sparse(I, ℒ.dim, ℒ.dim)
 
-    ∂ρ⃗̃ₜℒ = -expGₜ
+    # ∂ρ⃗̃ₜℒ
+    ∂ℒ[:, ℒ.state_components] = -expGₜ
 
-    ∂aₜℒ = ForwardDiff.jacobian(
+    # ∂aₜℒ
+    ∂ℒ[:, ℒ.drive_components] = ForwardDiff.jacobian(
         a -> -expv(Δtₜ, ℒ.G(a), ρ⃗̃ₜ),
         aₜ
     )
 
     if ℒ.freetime
-        ∂Δtₜℒ = -Gₜ * (expGₜ * ρ⃗̃ₜ)
-        return ∂ρ⃗̃ₜℒ, ∂ρ⃗̃ₜ₊₁ℒ, ∂aₜℒ, ∂Δtₜℒ
-    else
-        return ∂ρ⃗̃ₜℒ, ∂ρ⃗̃ₜ₊₁ℒ, ∂aₜℒ
+        # ∂Δtₜℒ
+        ∂ℒ[:, ℒ.timestep] = -(Gₜ * expGₜ) * ρ⃗̃ₜ
     end
+
+    return ∂ℒ
 end
 
 function get_comps(P::DensityOperatorExponentialIntegrator, traj::NamedTrajectory)
@@ -480,7 +495,12 @@ end
     ℰ = UnitaryExponentialIntegrator(:Ũ⃗, :a, sys, Z)
 
 
-    ∂Ũ⃗ₜℰ, ∂Ũ⃗ₜ₊₁ℰ, ∂aₜℰ, ∂Δtₜℰ = jacobian(ℰ, Z[1].data, Z[2].data, 1)
+    ∂ℰ = jacobian(ℰ, Z[1].data, Z[2].data, 1)
+
+    ∂Ũ⃗ₜℰ = ∂ℰ[:, ℰ.state_components]
+    ∂Ũ⃗ₜ₊₁ℰ = ∂ℰ[:, Z.dim .+ ℰ.state_components] 
+    ∂aₜℰ = ∂ℰ[:, ℰ.drive_components]
+    ∂Δtₜℰ = ∂ℰ[:, Z.components.Δt]  
 
     ∂ℰ_finitediff= FiniteDiff.finite_difference_jacobian(
         zz -> ℰ(zz[1:Z.dim], zz[Z.dim+1:end], 1),
@@ -528,7 +548,12 @@ end
 
     ℰ = QuantumStateExponentialIntegrator(:ψ̃, :a, sys, Z)
 
-    ∂ψ̃ₜℰ, ∂ψ̃ₜ₊₁ℰ, ∂aₜℰ, ∂Δtₜℰ = jacobian(ℰ, Z[1].data, Z[2].data, 1)
+    ∂ℰ = jacobian(ℰ, Z[1].data, Z[2].data, 1)
+
+    ∂ψ̃ₜℰ = ∂ℰ[:, ℰ.state_components]
+    ∂ψ̃ₜ₊₁ℰ = ∂ℰ[:, Z.dim .+ ℰ.state_components]
+    ∂aₜℰ = ∂ℰ[:, ℰ.drive_components]
+    ∂Δtₜℰ = ∂ℰ[:, Z.components.Δt]
 
     ∂ℰ_forwarddiff = ForwardDiff.jacobian(
         zz -> ℰ(zz[1:Z.dim], zz[Z.dim+1:end], 1),
@@ -580,15 +605,20 @@ end
 
     ℒ = DensityOperatorExponentialIntegrator(:ρ⃗̃, :a, sys, Z)
 
-    ∂ρ⃗̃ₜℒ, ∂ρ⃗̃ₜ₊₁ℒ, ∂aₜℒ, ∂Δtₜℒ = jacobian(ℒ, Z[1].data, Z[2].data, 1)
+    ∂ℒ = jacobian(ℒ, Z[1].data, Z[2].data, 1)
+
+    ∂ρ⃗̃ₜℒ = ∂ℒ[:, ℒ.state_components]
+    ∂ρ⃗̃ₜ₊₁ℒ = ∂ℒ[:, Z.dim .+ ℒ.state_components]
+    ∂aₜℒ = ∂ℒ[:, ℒ.drive_components]
+    ∂Δtₜℒ = ∂ℒ[:, Z.components.Δt]
 
     ∂ℒ_forwarddiff = ForwardDiff.jacobian(
         zz -> ℒ(zz[1:Z.dim], zz[Z.dim+1:end], 1),
         [Z[1].data; Z[2].data]
     )
 
-    @test ∂ρ⃗̃ₜℒ ≈ ∂ℒ_forwarddiff[:, 1:ℒ.dim]
-    @test ∂ρ⃗̃ₜ₊₁ℒ ≈ ∂ℒ_forwarddiff[:, Z.dim .+ (1:ℒ.dim)]
+    @test ∂ρ⃗̃ₜℒ ≈ ∂ℒ_forwarddiff[:, ℒ.state_components]
+    @test ∂ρ⃗̃ₜ₊₁ℒ ≈ ∂ℒ_forwarddiff[:, Z.dim .+ ℒ.state_components]
     @test ∂aₜℒ ≈ ∂ℒ_forwarddiff[:, Z.components.a]
     @test ∂Δtₜℒ ≈ ∂ℒ_forwarddiff[:, Z.components.Δt]
 end
