@@ -71,53 +71,8 @@ function dynamics_jacobian(
     @views function ∂f(zₜ, zₜ₊₁, t)
         ∂ = zeros(eltype(zₜ), dynamics_dim, 2traj.dim)
         for (integrator, integrator_comps) ∈ zip(integrators, dynamics_comps)
-            if integrator isa QuantumIntegrator
-                if integrator.autodiff
-                    ∂Pᵢ(z1, z2, t) = ForwardDiff.jacobian(
-                        zz -> integrator(zz[1:traj.dim], zz[traj.dim+1:end], t),
-                        [z1; z2]
-                    )
-                    ∂[integrator_comps, 1:2traj.dim] = ∂Pᵢ(zₜ, zₜ₊₁, t)
-                else
-                    if integrator.freetime
-                        x_comps, u_comps, Δt_comps = get_comps(integrator, traj)
-                        ∂xₜf, ∂xₜ₊₁f, ∂uₜf, ∂Δtₜf =
-                            Integrators.jacobian(integrator, zₜ, zₜ₊₁, t)
-                        ∂[integrator_comps, Δt_comps] = ∂Δtₜf
-                    else
-                        x_comps, u_comps = get_comps(integrator, traj)
-                        ∂xₜf, ∂xₜ₊₁f, ∂uₜf =
-                            Integrators.jacobian(integrator, zₜ, zₜ₊₁, t)
-                    end
-                    ∂[integrator_comps, x_comps] = ∂xₜf
-                    ∂[integrator_comps, x_comps .+ traj.dim] = ∂xₜ₊₁f
-                    if u_comps isa Tuple
-                        for (uᵢ_comps, ∂uₜᵢf) ∈ zip(u_comps, ∂uₜf)
-                            ∂[integrator_comps, uᵢ_comps] = ∂uₜᵢf
-                        end
-                    else
-                        ∂[integrator_comps, u_comps] = ∂uₜf
-                    end
-                end
-            elseif integrator isa DerivativeIntegrator
-                if integrator.freetime
-                    x_comps, dx_comps, Δt_comps = get_comps(integrator, traj)
-                    ∂xₜf, ∂xₜ₊₁f, ∂dxₜf, ∂Δtₜf =
-                        Integrators.jacobian(integrator, zₜ, zₜ₊₁, t)
-                else
-                    x_comps, dx_comps = get_comps(integrator, traj)
-                    ∂xₜf, ∂xₜ₊₁f, ∂dxₜf =
-                        Integrators.jacobian(integrator, zₜ, zₜ₊₁, t)
-                end
-                ∂[integrator_comps, x_comps] = ∂xₜf
-                ∂[integrator_comps, x_comps .+ traj.dim] = ∂xₜ₊₁f
-                ∂[integrator_comps, dx_comps] = ∂dxₜf
-                if integrator.freetime
-                    ∂[integrator_comps, Δt_comps] = ∂Δtₜf
-                end
-            else
-                error("integrator type not supported: $(typeof(integrator))")
-            end
+            ∂[integrator_comps, 1:traj.dim] = 
+                Integrators.jacobian(integrator, zₜ, zₜ₊₁, t)
         end
         return sparse(∂)
     end
