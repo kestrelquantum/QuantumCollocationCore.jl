@@ -96,7 +96,7 @@ Options for the Piccolo quantum optimal control library.
     build_trajectory_constraints::Bool = true
     complex_control_norm_constraint_name::Union{Nothing, Symbol} = nothing
     complex_control_norm_constraint_radius::Float64 = 1.0
-    bound_state::Bool = false
+    bound_state::Bool = integrator == :exponential 
     leakage_suppression::Bool = false
     R_leakage::Float64 = 1.0
     free_phase_infidelity::Bool = false

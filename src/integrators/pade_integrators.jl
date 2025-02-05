@@ -416,6 +416,8 @@ end
     zₜ₊₁::AbstractVector,
     t::Int
 )
+    ∂P = spzeros(P.dim, 2P.zdim)
+
     # obtain state and control vectors
     Ũ⃗ₜ₊₁ = zₜ₊₁[P.state_components]
     Ũ⃗ₜ = zₜ[P.state_components]
@@ -432,21 +434,25 @@ end
 
     Gₜ_powers = compute_powers(Gₜ, P.order ÷ 2)
 
-    ∂aₜP = ∂aₜ(P, Gₜ_powers, Ũ⃗ₜ₊₁, Ũ⃗ₜ, aₜ, Δtₜ)
+    # ∂aₜP 
+    ∂P[:, P.drive_components] = ∂aₜ(P, Gₜ_powers, Ũ⃗ₜ₊₁, Ũ⃗ₜ, aₜ, Δtₜ)
 
     Id = sparse(I, P.ketdim, P.ketdim)
 
     Fₜ, Bₜ = pade_operators(Gₜ_powers, I(2P.ketdim), Δtₜ)
 
-    ∂Ũ⃗ₜP = -Id ⊗ Fₜ
-    ∂Ũ⃗ₜ₊₁P = Id ⊗ Bₜ
+    # ∂Ũ⃗ₜP
+    ∂P[:, P.state_components] = -Id ⊗ Fₜ
+
+    # ∂Ũ⃗ₜ₊₁P 
+    ∂P[:, P.zdim .+ P.state_components] = Id ⊗ Bₜ
 
     if P.freetime
-        ∂ΔtₜP = ∂Δtₜ(P, Gₜ_powers, Ũ⃗ₜ₊₁, Ũ⃗ₜ, Δtₜ)
-        return ∂Ũ⃗ₜP, ∂Ũ⃗ₜ₊₁P, ∂aₜP, ∂ΔtₜP
-    else
-        return ∂Ũ⃗ₜP, ∂Ũ⃗ₜ₊₁P, ∂aₜP
+        # ∂ΔtₜP 
+        ∂P[:, P.timestep] = ∂Δtₜ(P, Gₜ_powers, Ũ⃗ₜ₊₁, Ũ⃗ₜ, Δtₜ)
     end
+
+    return ∂P
 end
 # ----------------------------------------------------------------
 #                  Quantum State Pade Integrator
@@ -661,6 +667,8 @@ end
     zₜ₊₁::AbstractVector,
     t::Int
 )
+    ∂P = spzeros(P.dim, 2P.zdim)
+
     # obtain state and control vectors
     ψ̃ₜ₊₁ = zₜ₊₁[P.state_components]
     ψ̃ₜ = zₜ[P.state_components]
@@ -677,22 +685,26 @@ end
 
     Gₜ_powers = compute_powers(Gₜ, P.order ÷ 2)
 
-    ∂aₜP = ∂aₜ(P, Gₜ_powers, ψ̃ₜ₊₁, ψ̃ₜ, aₜ, Δtₜ)
+    # ∂aₜP 
+    ∂P[:, P.drive_components] = ∂aₜ(P, Gₜ_powers, ψ̃ₜ₊₁, ψ̃ₜ, aₜ, Δtₜ)
 
-    # jacobian wrt state
+    Id = sparse(I, P.ketdim, P.ketdim)
+
     Fₜ, Bₜ = pade_operators(Gₜ_powers, I(2P.ketdim), Δtₜ)
 
-    ∂ψ̃ₜP = -Fₜ
-    ∂ψ̃ₜ₊₁P = Bₜ
+    # ∂ψ̃ₜP
+    ∂P[:, P.state_components] = -Fₜ
+
+    # ∂ψ̃ₜ₊₁P 
+    ∂P[:, P.zdim .+ P.state_components] = Bₜ
 
     if P.freetime
-        ∂ΔtₜP = ∂Δtₜ(P, Gₜ_powers, ψ̃ₜ₊₁, ψ̃ₜ, Δtₜ)
-        return ∂ψ̃ₜP, ∂ψ̃ₜ₊₁P, ∂aₜP, ∂ΔtₜP
-    else
-        return ∂ψ̃ₜP, ∂ψ̃ₜ₊₁P, ∂aₜP
+        # ∂ΔtₜP 
+        ∂P[:, P.timestep] = ∂Δtₜ(P, Gₜ_powers, ψ̃ₜ₊₁, ψ̃ₜ, Δtₜ)
     end
-end
 
+    return ∂P
+end
 
 # ---------------------------------------
 # Hessian of the Lagrangian

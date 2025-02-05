@@ -74,17 +74,18 @@ end
     zₜ₊₁::AbstractVector,
     t::Int
 )
-    dxₜ = zₜ[D.derivative_components]
+    ∂D = spzeros(D.dim, 2D.zdim)
     if D.freetime
+        dxₜ = zₜ[D.derivative_components]
         Δtₜ = zₜ[D.timestep]
+        ∂D[:, D.timestep] .= -dxₜ
     else
         Δtₜ = D.timestep
     end
-    ∂xₜD = sparse(-1.0I(D.dim))
-    ∂xₜ₊₁D = sparse(1.0I(D.dim))
-    ∂dxₜD = sparse(-Δtₜ * I(D.dim))
-    ∂ΔtₜD = -dxₜ
-    return ∂xₜD, ∂xₜ₊₁D, ∂dxₜD, ∂ΔtₜD
+    ∂D[:, D.variable_components] .= -1.0I(D.dim)
+    ∂D[:, D.derivative_components] .= -Δtₜ * I(D.dim)
+    ∂D[:, D.zdim .+ D.variable_components] .= 1.0I(D.dim)
+    return ∂D
 end
 
 function get_comps(D::DerivativeIntegrator, traj::NamedTrajectory)

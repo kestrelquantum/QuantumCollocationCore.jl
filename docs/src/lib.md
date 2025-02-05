@@ -1,5 +1,9 @@
 #  Library
 
+```@meta
+CollapsedDocStrings = true
+```
+
 ## Constraints
 ```@autodocs
 Modules = [QuantumCollocationCore.Constraints]
