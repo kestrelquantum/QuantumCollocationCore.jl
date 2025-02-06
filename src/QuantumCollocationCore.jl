@@ -5,9 +5,6 @@ using Reexport
 include("options.jl")
 @reexport using .Options
 
-include("structure_utils.jl")
-@reexport using .StructureUtils
-
 include("losses/_losses.jl")
 @reexport using .Losses
 

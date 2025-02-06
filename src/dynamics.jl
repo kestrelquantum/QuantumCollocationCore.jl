@@ -8,7 +8,6 @@ export dynamics_jacobian
 export dynamics_hessian_of_lagrangian
 export dynamics_components
 
-using ..StructureUtils
 using ..Integrators
 
 using TrajectoryIndexingUtils
@@ -27,7 +26,7 @@ struct QuantumDynamics <: AbstractDynamics
     integrators::Union{Nothing, Vector{<:AbstractIntegrator}}
     F::Function
     ∂F::Function
-    ∂F_structure::Vector{Tuple{Int, Int}}
+    ∂F_structure::Function
     μ∂²F::Union{Function, Nothing}
     μ∂²F_structure::Union{Vector{Tuple{Int, Int}}, Nothing}
     dim::Int
@@ -45,8 +44,7 @@ function dynamics_components(integrators::Vector{<:AbstractIntegrator})
 end
 
 function dynamics(
-    integrators::Vector{<:AbstractIntegrator},
-    traj::NamedTrajectory
+    integrators::Vector{<:AbstractIntegrator}
 )
     dynamics_comps = dynamics_components(integrators)
     dynamics_dim = sum(integrator.dim for integrator ∈ integrators)
@@ -60,21 +58,19 @@ function dynamics(
     return f
 end
 
-
-
 function dynamics_jacobian(
-    integrators::Vector{<:AbstractIntegrator},
-    traj::NamedTrajectory
+    integrators::Vector{<:AbstractIntegrator}
 )
     dynamics_comps = dynamics_components(integrators)
     dynamics_dim = sum(integrator.dim for integrator ∈ integrators)
+    zdim = integrators[1].zdim
     @views function ∂f(zₜ, zₜ₊₁, t)
-        ∂ = zeros(eltype(zₜ), dynamics_dim, 2traj.dim)
+        ∂ = spzeros(eltype(zₜ), dynamics_dim, 2zdim)
         for (integrator, integrator_comps) ∈ zip(integrators, dynamics_comps)
-            ∂[integrator_comps, 1:traj.dim] = 
+            ∂[integrator_comps, 1:2zdim] =
                 Integrators.jacobian(integrator, zₜ, zₜ₊₁, t)
         end
-        return sparse(∂)
+        return ∂
     end
     return ∂f
 end
@@ -152,40 +148,15 @@ function QuantumDynamics(
     integrators::Vector{<:AbstractIntegrator},
     traj::NamedTrajectory;
     eval_hessian=true,
-    jacobian_structure=true,
     verbose=false
 )
     if verbose
         println("        constructing knot point dynamics functions...")
     end
 
-    free_time = traj.timestep isa Symbol
+    f = dynamics(integrators)
 
-    # if free_time
-    #     @assert all([
-    #         !isnothing(state(integrator)) &&
-    #         !isnothing(controls(integrator))
-    #             for integrator ∈ integrators
-    #     ])
-    # else
-    #     @assert all([
-    #         !isnothing(state(integrator)) &&
-    #         !isnothing(controls(integrator))
-    #             for integrator ∈ integrators
-    #     ])
-    # end
-
-    # for integrator ∈ integrators
-    #     if integrator isa QuantumIntegrator && controls(integrator) isa Tuple
-    #         drive_comps = [traj.components[s] for s ∈ integrator.drive_symb]
-    #         number_of_drives = sum(length.(drive_comps))
-    #         @assert number_of_drives == integrator.n_drives "number of drives ($(number_of_drives)) does not match number of drive terms in Hamiltonian ($(integrator.n_drives))"
-    #     end
-    # end
-
-    f = dynamics(integrators, traj)
-
-    ∂f = dynamics_jacobian(integrators, traj)
+    ∂f = dynamics_jacobian(integrators)
 
     if eval_hessian
         μ∂²f = dynamics_hessian_of_lagrangian(integrators, traj)
@@ -193,31 +164,37 @@ function QuantumDynamics(
         μ∂²f = nothing
     end
 
-    if verbose
-        println("        determining dynamics derivative structure...")
-    end
-
     dynamics_dim = sum(integrator.dim for integrator ∈ integrators)
 
     if eval_hessian
-        ∂f_structure, ∂F_structure, μ∂²f_structure, μ∂²F_structure =
-            dynamics_structure(∂f, μ∂²f, traj, dynamics_dim;
-                verbose=verbose,
-                jacobian=jacobian_structure,
-                hessian=!any(
-                    integrator.autodiff for integrator ∈ integrators if integrator isa QuantumIntegrator
-                )
-            )
-        μ∂²f_nnz = length(μ∂²f_structure)
+        @error "hessians not implemented"
+        # ∂f_structure, ∂F_structure, μ∂²f_structure, μ∂²F_structure =
+        #     dynamics_structure(∂f, μ∂²f, traj, dynamics_dim;
+        #         verbose=verbose,
+        #         jacobian=jacobian_structure,
+        #         hessian=!any(
+        #             integrator.autodiff for integrator ∈ integrators if integrator isa QuantumIntegrator
+        #         )
+        #     )
+        # μ∂²f_nnz = length(μ∂²f_structure)
     else
-        ∂f_structure, ∂F_structure = dynamics_structure(∂f, traj, dynamics_dim;
-            verbose=verbose,
-            jacobian=jacobian_structure,
-        )
+        function ∂F_structure()
+            ∂f_structure = [(i, j) for i = 1:dynamics_dim, j = 1:2traj.dim]
+
+            ∂F_ = Vector{Tuple{Int,Int}}(undef, length(∂f_structure) * (traj.T - 1))
+            for t = 1:traj.T-1
+                ∂fₜ_structure = [
+                    (
+                        i + index(t, 0, dynamics_dim),
+                        j + index(t, 0, traj.dim)
+                    ) for (i, j) ∈ ∂f_structure
+                ]
+                ∂F_[slice(t, length(∂f_structure))] = ∂fₜ_structure
+            end
+            return ∂F_
+        end
         μ∂²F_structure = nothing
     end
-
-    ∂f_nnz = length(∂f_structure)
 
     if verbose
         println("        constructing full dynamics derivative functions...")
@@ -234,12 +211,13 @@ function QuantumDynamics(
     end
 
     @views function ∂F(Z⃗::AbstractVector{R}) where R <: Real
-        ∂s = zeros(R, length(∂F_structure))
+        ∂f_nnz = dynamics_dim * 2traj.dim
+        ∂s = zeros(R, ∂f_nnz * (traj.T - 1))
         Threads.@threads for t = 1:traj.T-1
             zₜ = Z⃗[slice(t, traj.dim)]
             zₜ₊₁ = Z⃗[slice(t + 1, traj.dim)]
             ∂fₜ = ∂f(zₜ, zₜ₊₁, t)
-            for (k, (i, j)) ∈ enumerate(∂f_structure)
+            for (k, (i, j)) ∈ enumerate(Iterators.product(1:dynamics_dim, 1:2traj.dim))
                 ∂s[index(t, k, ∂f_nnz)] = ∂fₜ[i, j]
             end
         end

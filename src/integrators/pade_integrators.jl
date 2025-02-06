@@ -43,14 +43,6 @@ const PADE_COEFFICIENTS = OrderedDict{Int,Vector{Float64}}(
     20 => [1/2, 9/76, 1/57, 7/3876, 7/51680, 7/930240, 1/3255840, 1/112869120, 1/6094932480, 1/670442572800]
 )
 
-function pade_operator(
-    Id::AbstractMatrix,
-    G_powers::Vector{<:AbstractMatrix},
-    coeffs::Vector{<:Real}
-)
-    return Id + sum(coeffs .* G_powers)
-end
-
 function forward_pade_coefficients(Δt::Real, pade_order::Int; timestep_derivative=false)
     n = pade_order ÷ 2
     if !timestep_derivative
@@ -87,7 +79,7 @@ function backward_operator(
 )
     pade_order = 2 * length(G_powers)
     coeffs = backward_pade_coefficients(Δt, pade_order; timestep_derivative=timestep_derivative)
-    return pade_operator(Id, G_powers, coeffs)
+    return Id + sum(coeffs .* G_powers)
 end
 
 backward_operator(G::AbstractMatrix, pade_order::Int, args...; kwargs...) =
@@ -101,7 +93,7 @@ function forward_operator(
 )
     pade_order = 2 * length(G_powers)
     coeffs = forward_pade_coefficients(Δt, pade_order; timestep_derivative=timestep_derivative)
-    return pade_operator(Id, G_powers, coeffs)
+    return Id + sum(coeffs .* G_powers)
 end
 
 forward_operator(G::AbstractMatrix, pade_order::Int, args...; kwargs...) =
@@ -141,7 +133,7 @@ pade_operators(G::AbstractMatrix, pade_order::Int, args...; kwargs...) =
     ∂G_∂aʲ::AbstractMatrix
 )
     F_coeffs = forward_pade_coefficients(Δt, P.order)
-    ∂F_∂aʲ = zeros(size(G_powers[1]))
+    ∂F_∂aʲ = spzeros(size(G_powers[1]))
     n = length(G_powers)
     for p = 1:n
         if p == 1
@@ -168,7 +160,7 @@ end
     ∂G_∂aʲ::AbstractMatrix
 )
     B_coeffs = backward_pade_coefficients(Δt, P.order)
-    ∂B_∂aʲ = zeros(size(G_powers[1]))
+    ∂B_∂aʲ = spzeros(size(G_powers[1]))
     for p = 1:(P.order ÷ 2)
         if p == 1
             ∂B_∂aʲ += B_coeffs[p] * ∂G_∂aʲ
@@ -434,7 +426,7 @@ end
 
     Gₜ_powers = compute_powers(Gₜ, P.order ÷ 2)
 
-    # ∂aₜP 
+    # ∂aₜP
     ∂P[:, P.drive_components] = ∂aₜ(P, Gₜ_powers, Ũ⃗ₜ₊₁, Ũ⃗ₜ, aₜ, Δtₜ)
 
     Id = sparse(I, P.ketdim, P.ketdim)
@@ -444,11 +436,11 @@ end
     # ∂Ũ⃗ₜP
     ∂P[:, P.state_components] = -Id ⊗ Fₜ
 
-    # ∂Ũ⃗ₜ₊₁P 
+    # ∂Ũ⃗ₜ₊₁P
     ∂P[:, P.zdim .+ P.state_components] = Id ⊗ Bₜ
 
     if P.freetime
-        # ∂ΔtₜP 
+        # ∂ΔtₜP
         ∂P[:, P.timestep] = ∂Δtₜ(P, Gₜ_powers, Ũ⃗ₜ₊₁, Ũ⃗ₜ, Δtₜ)
     end
 
@@ -663,11 +655,11 @@ end
 
 @views function jacobian(
     P::QuantumStatePadeIntegrator,
-    zₜ::AbstractVector,
-    zₜ₊₁::AbstractVector,
+    zₜ::AbstractVector{T},
+    zₜ₊₁::AbstractVector{T},
     t::Int
-)
-    ∂P = spzeros(P.dim, 2P.zdim)
+) where T
+    ∂P = spzeros(T, P.dim, 2P.zdim)
 
     # obtain state and control vectors
     ψ̃ₜ₊₁ = zₜ₊₁[P.state_components]
@@ -684,22 +676,19 @@ end
     end
 
     Gₜ_powers = compute_powers(Gₜ, P.order ÷ 2)
-
-    # ∂aₜP 
-    ∂P[:, P.drive_components] = ∂aₜ(P, Gₜ_powers, ψ̃ₜ₊₁, ψ̃ₜ, aₜ, Δtₜ)
-
-    Id = sparse(I, P.ketdim, P.ketdim)
-
     Fₜ, Bₜ = pade_operators(Gₜ_powers, I(2P.ketdim), Δtₜ)
+
+    # ∂aₜP
+    ∂P[:, P.drive_components] = ∂aₜ(P, Gₜ_powers, ψ̃ₜ₊₁, ψ̃ₜ, aₜ, Δtₜ)
 
     # ∂ψ̃ₜP
     ∂P[:, P.state_components] = -Fₜ
 
-    # ∂ψ̃ₜ₊₁P 
+    # ∂ψ̃ₜ₊₁P
     ∂P[:, P.zdim .+ P.state_components] = Bₜ
 
     if P.freetime
-        # ∂ΔtₜP 
+        # ∂ΔtₜP
         ∂P[:, P.timestep] = ∂Δtₜ(P, Gₜ_powers, ψ̃ₜ₊₁, ψ̃ₜ, Δtₜ)
     end
 
@@ -1077,4 +1066,105 @@ end
             μ∂ψ̃ₜ₊₁∂aₜP
         )
     end
+end
+
+@testitem "testing UnitaryPadeIntegrator" begin
+    using NamedTrajectories
+    using PiccoloQuantumObjects
+    using ForwardDiff
+
+    T = 100
+    H_drift = GATES[:Z]
+    H_drives = [GATES[:X], GATES[:Y]]
+    n_drives = length(H_drives)
+
+    sys = QuantumSystem(H_drift, H_drives)
+
+    U_init = GATES[:I]
+    U_goal = GATES[:X]
+
+    Ũ⃗_init = operator_to_iso_vec(U_init)
+    Ũ⃗_goal = operator_to_iso_vec(U_goal)
+
+    dt = 0.1
+
+    Z = NamedTrajectory(
+        (
+            Ũ⃗ = randn(length(Ũ⃗_init), T),
+            a = randn(n_drives, T),
+            da = randn(n_drives, T),
+            Δt = fill(dt, 1, T),
+        ),
+        controls=(:da,),
+        timestep=:Δt,
+        goal=(Ũ⃗ = Ũ⃗_goal,)
+    )
+
+    P = UnitaryPadeIntegrator(:Ũ⃗, :a, sys, Z)
+
+    ∂P = jacobian(P, Z[1].data, Z[2].data, 1)
+
+    ∂Ũ⃗ₜP = ∂P[:, P.state_components]
+    ∂Ũ⃗ₜ₊₁P = ∂P[:, Z.dim .+ P.state_components]
+    ∂aₜP = ∂P[:, P.drive_components]
+    ∂ΔtₜP = ∂P[:, Z.components.Δt]
+
+    ∂P_forwarddiff = ForwardDiff.jacobian(
+        zz -> P(zz[1:Z.dim], zz[Z.dim+1:end], 1),
+        [Z[1].data; Z[2].data]
+    )
+
+    @test isapprox(∂Ũ⃗ₜP, ∂P_forwarddiff[:, 1:P.dim]; atol=1e-6)
+    @test isapprox(∂Ũ⃗ₜ₊₁P, ∂P_forwarddiff[:, Z.dim .+ (1:P.dim)]; atol=1e-6)
+    @test isapprox(∂aₜP, ∂P_forwarddiff[:, Z.components.a]; atol=1e-6)
+    @test isapprox(∂ΔtₜP, ∂P_forwarddiff[:, Z.components.Δt]; atol=1e-6)
+end
+
+@testitem "testing QuantumStatePadeIntegrator" begin
+    using NamedTrajectories
+    using PiccoloQuantumObjects
+    using ForwardDiff
+
+    T = 100
+    H_drift = GATES[:Z]
+    H_drives = [GATES[:X], GATES[:Y]]
+    n_drives = length(H_drives)
+
+    sys = QuantumSystem(H_drift, H_drives)
+
+    ψ̃_init = ket_to_iso([1.0, 0.0])
+    ψ̃_goal = ket_to_iso([0.0, 1.0])
+
+    dt = 0.1
+
+    Z = NamedTrajectory(
+        (
+            ψ̃ = randn(length(ψ̃_init), T),
+            a = randn(n_drives, T),
+            da = randn(n_drives, T),
+            Δt = fill(dt, 1, T),
+        ),
+        controls=(:da,),
+        timestep=:Δt,
+        goal=(ψ̃ = ψ̃_goal,)
+    )
+
+    P = QuantumStatePadeIntegrator(:ψ̃, :a, sys, Z)
+
+    ∂P = jacobian(P, Z[1].data, Z[2].data, 1)
+
+    ∂ψ̃ₜP = ∂P[:, P.state_components]
+    ∂ψ̃ₜ₊₁P = ∂P[:, Z.dim .+ P.state_components]
+    ∂aₜP = ∂P[:, P.drive_components]
+    ∂ΔtₜP = ∂P[:, Z.components.Δt]
+
+    ∂P_forwarddiff = ForwardDiff.jacobian(
+        zz -> P(zz[1:Z.dim], zz[Z.dim+1:end], 1),
+        [Z[1].data; Z[2].data]
+    )
+
+    @test ∂ψ̃ₜP ≈ ∂P_forwarddiff[:, 1:P.dim]
+    @test ∂ψ̃ₜ₊₁P ≈ ∂P_forwarddiff[:, Z.dim .+ (1:P.dim)]
+    @test ∂aₜP ≈ ∂P_forwarddiff[:, Z.components.a]
+    @test ∂ΔtₜP ≈ ∂P_forwarddiff[:, Z.components.Δt]
 end

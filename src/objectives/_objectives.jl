@@ -11,7 +11,6 @@ using NamedTrajectories
 using PiccoloQuantumObjects
 using LinearAlgebra
 using SparseArrays
-using Symbolics
 using TestItems
 
 include("quantum_objective.jl")

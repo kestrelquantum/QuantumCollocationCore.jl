@@ -138,8 +138,7 @@ end
     # obtain the timestep
     if ℰ.freetime
         Δtₜ = zₜ[ℰ.timestep]
-
-   else
+    else
         Δtₜ = ℰ.timestep
     end
 
@@ -498,9 +497,9 @@ end
     ∂ℰ = jacobian(ℰ, Z[1].data, Z[2].data, 1)
 
     ∂Ũ⃗ₜℰ = ∂ℰ[:, ℰ.state_components]
-    ∂Ũ⃗ₜ₊₁ℰ = ∂ℰ[:, Z.dim .+ ℰ.state_components] 
+    ∂Ũ⃗ₜ₊₁ℰ = ∂ℰ[:, Z.dim .+ ℰ.state_components]
     ∂aₜℰ = ∂ℰ[:, ℰ.drive_components]
-    ∂Δtₜℰ = ∂ℰ[:, Z.components.Δt]  
+    ∂Δtₜℰ = ∂ℰ[:, Z.components.Δt]
 
     ∂ℰ_finitediff= FiniteDiff.finite_difference_jacobian(
         zz -> ℰ(zz[1:Z.dim], zz[Z.dim+1:end], 1),
