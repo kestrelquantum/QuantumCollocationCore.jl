@@ -112,7 +112,10 @@ function QuantumControlProblem(
     linear_constraints = LinearConstraint[con for con ∈ constraints if con isa LinearConstraint]
 
     if piccolo_options.build_trajectory_constraints
-        linear_constraints = LinearConstraint[trajectory_constraints(traj; control_name=control_name); linear_constraints]
+        linear_constraints = LinearConstraint[
+            trajectory_constraints(traj; control_name=control_name);
+            linear_constraints
+        ]
     end
 
     optimizer = Ipopt.Optimizer()
@@ -139,6 +142,10 @@ function QuantumControlProblem(
         nl_constraint.params for nl_constraint ∈ nonlinear_constraints
     ]
     params[:objective_terms] = obj.terms
+
+    if piccolo_options.verbose
+        println("    finished.")
+    end
 
     return QuantumControlProblem(
         optimizer,
@@ -167,7 +174,6 @@ function QuantumControlProblem(
         println("    building dynamics from integrators...")
     end
     dynamics = QuantumDynamics(integrators, traj;
-        jacobian_structure=piccolo_options.jacobian_structure,
         eval_hessian=piccolo_options.eval_hessian,
         verbose=piccolo_options.verbose
     )
@@ -197,11 +203,13 @@ function QuantumControlProblem(
     if piccolo_options.verbose
         println("    building dynamics from integrator...")
     end
+
     dynamics = QuantumDynamics(integrator, traj;
         jacobian_structure=piccolo_options.jacobian_structure,
         eval_hessian=piccolo_options.eval_hessian,
         verbose=piccolo_options.verbose
     )
+
     return QuantumControlProblem(
         traj,
         obj,
@@ -212,35 +220,13 @@ function QuantumControlProblem(
     )
 end
 
-function QuantumControlProblem(
-    traj::NamedTrajectory,
-    obj::Objective,
-    f::Function;
-    ipopt_options::IpoptOptions=IpoptOptions(),
-    piccolo_options::PiccoloOptions=PiccoloOptions(),
-    kwargs...
-)
-    # Save internal copy of the options to allow modification
-    ipopt_options = deepcopy(ipopt_options)
-    piccolo_options = deepcopy(piccolo_options)
+# TODO: add method for constructing problem with user defined dynamics function (in place of integrators)
+#    - this will require a custom dynamics function
 
-    if piccolo_options.verbose
-        println("    building dynamics from function...")
-    end
-    dynamics = QuantumDynamics(f, traj;
-        jacobian_structure=piccolo_options.jacobian_structure,
-        eval_hessian=piccolo_options.eval_hessian,
-        verbose=piccolo_options.verbose
-    )
-    return QuantumControlProblem(
-        traj,
-        obj,
-        dynamics;
-        ipopt_options=ipopt_options,
-        piccolo_options=piccolo_options,
-        kwargs...
-    )
-end
+
+# ----------------------------------------------------------------------------
+#                         Optimizer Initialization
+# ----------------------------------------------------------------------------
 
 function initialize_optimizer!(
     optimizer::Ipopt.Optimizer,
@@ -315,6 +301,11 @@ end
 
 set_trajectory!(prob::QuantumControlProblem) =
     set_trajectory!(prob, prob.trajectory)
+
+
+# ----------------------------------------------------------------------------
+#                         Problem Data Getters
+# ----------------------------------------------------------------------------
 
 function get_datavec(prob::QuantumControlProblem)
     n_vars = prob.trajectory.dim * prob.trajectory.T

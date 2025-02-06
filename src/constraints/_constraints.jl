@@ -11,7 +11,6 @@ export NonlinearEqualityConstraint
 export NonlinearInequalityConstraint
 
 using ..Losses
-using ..StructureUtils
 using ..Options
 
 using TrajectoryIndexingUtils
@@ -59,7 +58,7 @@ function constrain!(
 )
     for con in cons
         if verbose
-            println("applying constraint: ", con.label)
+            println("        applying constraint: ", con.label)
         end
         con(opt, vars, traj)
     end
