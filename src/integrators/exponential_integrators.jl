@@ -332,7 +332,7 @@ mutable struct DensityOperatorExponentialIntegrator <: DensityOperatorIntegrator
     dim::Int
     zdim::Int
     autodiff::Bool
-    G::Function
+    𝒢::Function
 
     function DensityOperatorExponentialIntegrator(
         density_operator_name::Symbol,
