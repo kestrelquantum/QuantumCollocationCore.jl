@@ -346,8 +346,6 @@ mutable struct DensityOperatorExponentialIntegrator <: DensityOperatorIntegrator
 
         state_components = traj.components[density_operator_name]
 
-        println(length(state_components))
-
         if drive_name isa Tuple
             drive_components = vcat((traj.components[s] for s ∈ drive_name)...)
         else
@@ -376,7 +374,7 @@ mutable struct DensityOperatorExponentialIntegrator <: DensityOperatorIntegrator
             dim,
             traj.dim,
             autodiff,
-            sys.G
+            sys.𝒢
         )
     end
 end
