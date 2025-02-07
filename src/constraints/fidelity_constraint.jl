@@ -88,7 +88,7 @@ function FinalFidelityConstraint(;
 
     ∂ℱ(x) = ForwardDiff.jacobian(ℱ, x)
 
-    ∂ℱ_structure = jacobian_structure(∂ℱ, statedim)
+    ∂ℱ_structure = Iterators.product(1, 1:statedim)
 
     col_offset = index(T, comps[1] - 1, zdim)
 

@@ -90,11 +90,11 @@ end
 end
 
 function MOI.jacobian_structure(evaluator::PicoEvaluator)
-    dynamics_structure = evaluator.dynamics.∂F_structure
+    dynamics_structure = evaluator.dynamics.∂F_structure()
     row_offset = evaluator.n_dynamics_constraints
     nl_constraint_structure = []
     for con ∈ evaluator.nonlinear_constraints
-        con_structure = [(i + row_offset, j) for (i, j) in con.∂g_structure]
+        con_structure = [(i + row_offset, j) for (i, j) ∈ con.∂g_structure]
         push!(nl_constraint_structure, con_structure)
         row_offset += con.dim
     end
