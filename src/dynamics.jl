@@ -208,7 +208,7 @@ function QuantumDynamics(
                     j + index(t, 0, traj.dim)
                 ) for (i, j) ∈ ∂f_structure
             ]
-            ∂F_[slice(t, length(∂f_structure))] = ∂fₜ_structure
+            ∂F_structure[slice(t, length(∂f_structure))] = ∂fₜ_structure
         end
 
         μ∂²F_structure = []
