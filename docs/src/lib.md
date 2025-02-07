@@ -49,7 +49,3 @@ Modules = [QuantumCollocationCore.Problems]
 Modules = [QuantumCollocationCore.SaveLoadUtils]
 ```
 
-## Structure Utils
-```@autodocs
-Modules = [QuantumCollocationCore.StructureUtils]
-```
