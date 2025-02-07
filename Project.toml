@@ -1,7 +1,7 @@
 name = "QuantumCollocationCore"
 uuid = "2b384925-53cb-4042-a8d2-6faa627467e1"
 authors = ["Aaron Trowbridge <aaron.j.trowbridge@gmail.com> and contributors"]
-version = "0.2.0"
+version = "0.2.1"
 
 [deps]
 Einsum = "b7d42ee7-0b51-5a75-98ca-779d3107e4c0"
