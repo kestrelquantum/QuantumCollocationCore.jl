@@ -232,16 +232,6 @@ end
 ### UnitaryFreePhaseInfidelityLoss
 ###
 
-function free_phase(
-    ϕs::AbstractVector,
-    Hs::AbstractVector{<:AbstractMatrix}
-)
-    # NOTE: switch to expv for ForwardDiff
-    # return reduce(kron, [exp(im * ϕ * H) for (ϕ, H) ∈ zip(ϕs, Hs)])
-    Id = Matrix{eltype(Hs[1])}(I, size(Hs[1]))
-    return reduce(kron, [expv(im * ϕ, H, Id) for (ϕ, H) ∈ zip(ϕs, Hs)])
-end
-
 function free_phase_gradient(
     ϕs::AbstractVector,
     Hs::AbstractVector{<:AbstractMatrix}
@@ -531,7 +521,7 @@ end
     phase_operators = [PAULIS[:Z], PAULIS[:Z]]
     subspace = get_subspace_indices([1:2, 1:2], [n_levels, n_levels])
 
-    R = Losses.free_phase(phase_data, phase_operators)
+    R = free_phase(phase_data, phase_operators)
     @test R'R ≈ [1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1]
     @test size(R) == (2^2, 2^2)
 

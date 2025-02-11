@@ -27,6 +27,8 @@ using MathOptInterface
 using LinearAlgebra
 const MOI = MathOptInterface
 
+import PiccoloQuantumObjects
+
 abstract type AbstractProblem end
 
 """
@@ -378,5 +380,55 @@ function get_constraints(prob::QuantumControlProblem)
         NonlinearConstraint.(nonlinear_constraints)...
     ]
 end
+
+function PiccoloQuantumObjects.get_suffix(
+    prob::QuantumControlProblem,
+    subproblem_traj::NamedTrajectory,
+    suffix::String;
+    unitary_prefix::Symbol=:Ũ⃗,
+    remove::Bool=false,
+)
+    # Extract the trajectory
+    traj = get_suffix(prob.trajectory, suffix, remove=remove)
+
+    # Extract the integrators
+    integrators = get_suffix(prob.integrators, prob.system, prob.trajectory, subproblem_traj, suffix)
+
+    # Get direct sum indices
+    # TODO: Should have separate utility function
+    # TODO: doesn't exclude more than one match
+    i₀ = 0
+    indices = Int[]
+    for (k, d) ∈ pairs(traj.dims)
+        if startswith(k, unitary_prefix)
+            if endswith(k, suffix)
+                # isovec: undo real/imag, undo vectorization
+                append!(indices, i₀+1:i₀+isqrt(d ÷ 2))
+            else
+                i₀ += isqrt(d ÷ 2)
+            end
+        end
+    end
+
+    # Extract the system
+    system = QuantumSystem(
+        copy(prob.system.H_drift[indices, indices]),
+        [copy(H[indices, indices]) for H in prob.system.H_drives if !iszero(H[indices, indices])],
+        # params=get_suffix(prob.system.params, suffix)
+    )
+
+    # Null objective function
+    # TODO: Should we extract past objectives?
+    J = NullObjective()
+
+    return QuantumControlProblem(
+        system,
+        traj,
+        J,
+        integrators
+    )
+end
+
+
 
 end
