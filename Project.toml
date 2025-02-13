@@ -1,7 +1,7 @@
 name = "QuantumCollocationCore"
 uuid = "2b384925-53cb-4042-a8d2-6faa627467e1"
 authors = ["Aaron Trowbridge <aaron.j.trowbridge@gmail.com> and contributors"]
-version = "0.2.1"
+version = "0.3.0"
 
 [deps]
 Einsum = "b7d42ee7-0b51-5a75-98ca-779d3107e4c0"
@@ -28,9 +28,9 @@ FiniteDiff = "2.27"
 ForwardDiff = "0.10"
 Ipopt = "1.7"
 JLD2 = "0.5"
-MathOptInterface = "1.35"
+MathOptInterface = "1.36"
 NamedTrajectories = "0.2"
-PiccoloQuantumObjects = "0.2"
+PiccoloQuantumObjects = "0.3"
 Reexport = "1.2"
 TestItemRunner = "1.1"
 TestItems = "1.0"
