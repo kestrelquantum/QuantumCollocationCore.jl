@@ -27,7 +27,6 @@ using MathOptInterface
 using LinearAlgebra
 const MOI = MathOptInterface
 
-import PiccoloQuantumObjects
 
 abstract type AbstractProblem end
 
@@ -381,7 +380,7 @@ function get_constraints(prob::QuantumControlProblem)
     ]
 end
 
-function PiccoloQuantumObjects.get_suffix(
+function NamedTrajectories.get_suffix(
     prob::QuantumControlProblem,
     subproblem_traj::NamedTrajectory,
     suffix::String;
@@ -389,10 +388,12 @@ function PiccoloQuantumObjects.get_suffix(
     remove::Bool=false,
 )
     # Extract the trajectory
-    traj = get_suffix(prob.trajectory, suffix, remove=remove)
+    traj = NamedTrajectories.get_suffix(prob.trajectory, suffix, remove=remove)
 
     # Extract the integrators
-    integrators = get_suffix(prob.integrators, prob.system, prob.trajectory, subproblem_traj, suffix)
+    integrators = NamedTrajectories.get_suffix(
+        prob.integrators, prob.system, prob.trajectory, subproblem_traj, suffix
+    )
 
     # Get direct sum indices
     # TODO: Should have separate utility function

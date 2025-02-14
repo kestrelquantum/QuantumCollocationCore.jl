@@ -4,31 +4,10 @@ export AbstractIntegrator
 
 export QuantumIntegrator
 
-export QuantumPadeIntegrator
-export QuantumStatePadeIntegrator
-export UnitaryPadeIntegrator
-
-export UnitaryExponentialIntegrator
-export QuantumStateExponentialIntegrator
-export DensityOperatorExponentialIntegrator
-
-export DerivativeIntegrator
-
 export jacobian
 export hessian_of_the_lagrangian
 
 export get_comps
-
-export nth_order_pade
-export fourth_order_pade
-export sixth_order_pade
-export eighth_order_pade
-export tenth_order_pade
-
-export get_suffix
-export add_suffix
-export remove_suffix
-export modify_integrator_suffix
 
 using NamedTrajectories
 using TrajectoryIndexingUtils
@@ -38,29 +17,28 @@ using SparseArrays
 using ForwardDiff
 using TestItems
 
-import PiccoloQuantumObjects
+import .NamedTrajectories: add_suffix, remove_suffix, get_suffix
 
 const ⊗ = kron
 
+"""
+    AbstractIntegrator
+
+Abstract type for integrators.
+    
+Required methods:
+    - Integrator(args): evaluate an implicit dynamics constraint between knot points
+    - jacobian(Integrator, args): evaluate the jacobian of the implicit dynamics
+
+Optional methods:
+    - hessian_of_the_lagrangian: evaluate the hessian of the lagrangian
+
+"""
 abstract type AbstractIntegrator end
 
-function comps(P::AbstractIntegrator, traj::NamedTrajectory)
-    state_comps = traj.components[state(P)]
-    u = controls(P)
-    if u isa Tuple
-        control_comps = Tuple(traj.components[uᵢ] for uᵢ ∈ u)
-    else
-        control_comps = traj.components[u]
-    end
-    if traj.timestep isa Float64
-        return state_comps, control_comps
-    else
-        timestep_comp = traj.components[traj.timestep]
-        return state_comps, control_comps, timestep_comp
-    end
-end
+function jacobian end
 
-
+function hessian_of_the_lagrangian end
 
 abstract type QuantumIntegrator <: AbstractIntegrator end
 
@@ -74,10 +52,23 @@ include("pade_integrators.jl")
 include("exponential_integrators.jl")
 
 
-# ----------------------------------------------------------------------------
-# Integrator direct sum methods
-# ----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------- #
+# Integrator add/remove/get suffix methods
+# ---------------------------------------------------------------------------- #
 
+# TODO: Refactor (don't overload, use get_comps)
+
+
+"""
+    modify_integrator_suffix(integrator, modifier, suffix, traj, mod_traj)
+
+Modify the integrator by adding or removing a suffix to the component names. 
+The `modifier` function should be either `add_suffix` or `remove_suffix`.
+
+Integrators use components and not symbols, so the suffix is added or removed by using 
+the components of modifier(name, suffix) from `mod_traj`.
+
+"""
 function modify_integrator_suffix(
     integrator::AbstractIntegrator,
     modifier::Function,
@@ -104,7 +95,9 @@ function modify_integrator_suffix(
     end
 end
 
-function PiccoloQuantumObjects.add_suffix(
+# add suffix
+
+function add_suffix(
     integrator::AbstractIntegrator,
     suffix::String,
     traj::NamedTrajectory,
@@ -113,19 +106,18 @@ function PiccoloQuantumObjects.add_suffix(
     return modify_integrator_suffix(integrator, add_suffix, suffix, traj, mod_traj)
 end
 
-function PiccoloQuantumObjects.add_suffix(
+function add_suffix(
     integrators::AbstractVector{<:AbstractIntegrator},
     suffix::String,
     traj::NamedTrajectory,
     mod_traj::NamedTrajectory
 )
-    return [
-        add_suffix(integrator, suffix, traj, mod_traj)
-            for integrator ∈ integrators
-    ]
+    return [add_suffix(i, suffix, traj, mod_traj) for i ∈ integrators]
 end
 
-function PiccoloQuantumObjects.remove_suffix(
+# remove suffix
+
+function remove_suffix(
     integrator::AbstractIntegrator,
     suffix::String,
     traj::NamedTrajectory,
@@ -134,51 +126,41 @@ function PiccoloQuantumObjects.remove_suffix(
     return modify_integrator_suffix(integrator, remove_suffix, suffix, traj, mod_traj)
 end
 
-function PiccoloQuantumObjects.remove_suffix(
+function remove_suffix(
     integrators::AbstractVector{<:AbstractIntegrator},
     suffix::String,
     traj::NamedTrajectory,
     mod_traj::NamedTrajectory
 )
-    return [remove_suffix(intg, suffix, traj, mod_traj) for intg in integrators]
+    return [remove_suffix(i, suffix, traj, mod_traj) for i in integrators]
 end
 
 
-# Get suffix utilities
-# --------------------
+# get suffix
 
-Base.endswith(symb::Symbol, suffix::AbstractString) = endswith(String(symb), suffix)
-Base.endswith(integrator::UnitaryPadeIntegrator, suffix::String) = endswith(integrator.unitary_symb, suffix)
-Base.endswith(integrator::DerivativeIntegrator, suffix::String) = endswith(integrator.variable, suffix)
-
-function Base.endswith(integrator::AbstractIntegrator, traj::NamedTrajectory, suffix::String)
-    if integrator isa UnitaryExponentialIntegrator
-        name = get_component_names(traj, integrator.state_components)
-    elseif integrator isa QuantumStateExponentialIntegrator
-        name = get_component_names(traj, integrator.state_components)
-    elseif integrator isa UnitaryPadeIntegrator
-        name = get_component_names(traj, integrator.state_components)
-    elseif integrator isa QuantumStatePadeIntegrator
-        name = get_component_names(traj, integrator.state_components)
-    elseif integrator isa DerivativeIntegrator
-        name = get_component_names(traj, integrator.variable_components)
-    else
-        error("Integrator type not recognized")
-    end
-    return endswith(name, suffix)
-end
-
-function PiccoloQuantumObjects.get_suffix(
+function get_suffix(
     integrators::AbstractVector{<:AbstractIntegrator},
-    sys::AbstractQuantumSystem,
     traj::NamedTrajectory,
     mod_traj::NamedTrajectory,
-    suffix::String
+    suffix::String;
+    remove::Bool=false
 )
     found = AbstractIntegrator[]
-    for integrator ∈ integrators
-        if endswith(integrator, traj, suffix)
-            push!(found, remove_suffix(integrator, sys, traj, mod_traj, suffix))
+    for intg ∈ integrators
+        if intg isa QuantumIntegrator
+            name = get_component_names(traj, intg.state_components)
+        elseif intg isa DerivativeIntegrator
+            name = get_component_names(traj, intg.variable_components)
+        else
+            error("Integrator type not recognized")
+        end
+
+        if endswith(name, suffix)
+            if remove
+                push!(found, remove_suffix(intg, suffix, traj, mod_traj))
+            else
+                push!(found, intg)
+            end
         end
     end
     return found

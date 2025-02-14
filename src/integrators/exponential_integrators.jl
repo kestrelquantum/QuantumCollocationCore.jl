@@ -1,8 +1,11 @@
 """
-This file includes expoential integrators for states and unitaries
+This file includes exponential integrators for states and unitaries
 """
 
-const ⊗ = kron
+export UnitaryExponentialIntegrator
+export QuantumStateExponentialIntegrator
+export DensityOperatorExponentialIntegrator
+
 
 using ExponentialAction
 
@@ -73,32 +76,6 @@ mutable struct UnitaryExponentialIntegrator <: UnitaryIntegrator
             autodiff,
             sys.G
         )
-    end
-end
-
-function (integrator::UnitaryExponentialIntegrator)(
-    traj::NamedTrajectory;
-    unitary_name::Union{Nothing, Symbol}=nothing,
-    drive_name::Union{Nothing, Symbol, Tuple{Vararg{Symbol}}}=nothing,
-    G::Function=integrator.G,
-    autodiff::Bool=integrator.autodiff
-)
-    @assert !isnothing(unitary_name) "unitary_name must be provided"
-    @assert !isnothing(drive_name) "drive_name must be provided"
-    return UnitaryExponentialIntegrator(
-        unitary_name,
-        drive_name,
-        G,
-        traj;
-        autodiff=autodiff
-    )
-end
-
-function get_comps(P::UnitaryExponentialIntegrator, traj::NamedTrajectory)
-    if P.freetime
-        return P.state_components, P.drive_components, traj.components[traj.timestep]
-    else
-        return P.state_components, P.drive_components
     end
 end
 
@@ -229,32 +206,6 @@ mutable struct QuantumStateExponentialIntegrator <: QuantumStateIntegrator
         )
     end
 end
-
-function get_comps(P::QuantumStateExponentialIntegrator, traj::NamedTrajectory)
-    if P.freetime
-        return P.state_components, P.drive_components, traj.components[traj.timestep]
-    else
-        return P.state_components, P.drive_components
-    end
-end
-
-# function (integrator::QuantumStateExponentialIntegrator)(
-#     traj::NamedTrajectory;
-#     state_name::Union{Nothing, Symbol}=nothing,
-#     drive_name::Union{Nothing, Symbol, Tuple{Vararg{Symbol}}}=nothing,
-#     G::Function=integrator.G,
-#     autodiff::Bool=integrator.autodiff
-# )
-#     @assert !isnothing(state_name) "state_name must be provided"
-#     @assert !isnothing(drive_name) "drive_name must be provided"
-#     return QuantumStateExponentialIntegrator(
-#         state_name,
-#         drive_name,
-#         G,
-#         traj;
-#         autodiff=autodiff
-#     )
-# end
 
 # ------------------------------ Integrator --------------------------------- #
 

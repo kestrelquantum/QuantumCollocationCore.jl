@@ -1,3 +1,8 @@
+"""
+This file contains shared utility functions for the integrators.
+"""
+
+
 const Id2 = 1.0 * I(2)
 const Im2 = 1.0 * [0 -1; 1 0]
 

@@ -1,3 +1,5 @@
+export DerivativeIntegrator
+
 
 ###
 ### Derivative Integrator
@@ -35,23 +37,6 @@ function DerivativeIntegrator(
     )
 end
 
-# function (integrator::DerivativeIntegrator)(
-#     traj::NamedTrajectory;
-#     variable::Union{Symbol, Nothing}=nothing,
-#     derivative::Union{Symbol, Nothing}=nothing,
-# )
-#     @assert !isnothing(variable) "variable must be provided"
-#     @assert !isnothing(derivative) "derivative must be provided"
-#     return DerivativeIntegrator(
-#         variable,
-#         derivative,
-#         traj
-#     )
-# end
-
-state(integrator::DerivativeIntegrator) = integrator.variable
-controls(integrator::DerivativeIntegrator) = integrator.derivative
-
 @views function (D::DerivativeIntegrator)(
     zₜ::AbstractVector,
     zₜ₊₁::AbstractVector,
@@ -86,12 +71,4 @@ end
     ∂D[:, D.derivative_components] .= -Δtₜ * I(D.dim)
     ∂D[:, D.zdim .+ D.variable_components] .= 1.0I(D.dim)
     return ∂D
-end
-
-function get_comps(D::DerivativeIntegrator, traj::NamedTrajectory)
-    if D.freetime
-        return D.variable_components, D.derivative_components, traj.components[traj.timestep]
-    else
-        return D.variable_components, D.derivative_components
-    end
 end

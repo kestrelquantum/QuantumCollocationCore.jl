@@ -1,3 +1,14 @@
+export nth_order_pade
+export fourth_order_pade
+export sixth_order_pade
+export eighth_order_pade
+export tenth_order_pade
+
+export QuantumPadeIntegrator
+export QuantumStatePadeIntegrator
+export UnitaryPadeIntegrator
+
+
 function nth_order_pade(Gₜ::Matrix, n::Int)
     @assert n ∈ keys(PADE_COEFFICIENTS)
     coeffs = PADE_COEFFICIENTS[n]
@@ -283,39 +294,7 @@ mutable struct UnitaryPadeIntegrator <: UnitaryIntegrator
     end
 end
 
-function get_comps(P::UnitaryPadeIntegrator, traj::NamedTrajectory)
-    if P.freetime
-        return P.state_components, P.drive_components, traj.components[traj.timestep]
-    else
-        return P.state_components, P.drive_components
-    end
-end
-
-# function (integrator::UnitaryPadeIntegrator)(
-#     traj::NamedTrajectory;
-#     unitary_name::Union{Symbol, Nothing}=nothing,
-#     drive_name::Union{Symbol, Tuple{Vararg{Symbol}}, Nothing}=nothing,
-#     order::Int=integrator.order,
-#     G::Function=integrator.G,
-#     ∂G::Function=integrator.∂G,
-#     autodiff::Bool=integrator.autodiff
-# )
-#     @assert !isnothing(unitary_name) "unitary_name must be provided"
-#     @assert !isnothing(drive_name) "drive_name must be provided"
-#     return UnitaryPadeIntegrator(
-#         unitary_name,
-#         drive_name,
-#         G,
-#         ∂G,
-#         traj;
-#         order=order,
-#         autodiff=autodiff
-#     )
-# end
-
 # ------------------- Integrator -------------------
-
-
 
 function nth_order_pade(
     P::UnitaryPadeIntegrator,
@@ -545,36 +524,6 @@ mutable struct QuantumStatePadeIntegrator <: QuantumStateIntegrator
         )
     end
 end
-
-function get_comps(P::QuantumStatePadeIntegrator, traj::NamedTrajectory)
-    if P.freetime
-        return P.state_components, P.drive_components, traj.components[traj.timestep]
-    else
-        return P.state_components, P.drive_components
-    end
-end
-
-# function (integrator::QuantumStatePadeIntegrator)(
-#     traj::NamedTrajectory;
-#     state_name::Union{Symbol, Nothing}=nothing,
-#     drive_name::Union{Symbol, Tuple{Vararg{Symbol}}, Nothing}=nothing,
-#     order::Int=integrator.order,
-#     G::Function=integrator.G,
-#     ∂G::Function=integrator.∂G,
-#     autodiff::Bool=integrator.autodiff
-# )
-#     @assert !isnothing(state_name) "state_name must be provided"
-#     @assert !isnothing(drive_name) "drive_name must be provided"
-#     return QuantumStatePadeIntegrator(
-#         state_name,
-#         drive_name,
-#         G,
-#         ∂G,
-#         traj;
-#         order=order,
-#         autodiff=autodiff
-#     )
-# end
 
 # ------------------- Integrator -------------------
 
@@ -1067,6 +1016,8 @@ end
         )
     end
 end
+
+# ******************************************************************************* #
 
 @testitem "testing UnitaryPadeIntegrator" begin
     using NamedTrajectories
